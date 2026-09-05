@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "rules": {
+    "caseSensitive": false,
+    "stripPrefixes": ["gpt-"],
+    "integerVersionSuffix": ".0",
+    "uppercaseUnknownEffort": true,
+    "effortSeparator": "·"
+  },
+  "modelAliases": {
+    "gpt6-astra": "6.0A",
+    "gpt-6-astra": "6.0A"
+  },
+  "modelSuffixAliases": {
+    "astra": "A",
+    "sol": "S",
+    "terra": "T",
+    "luna": "L",
+    "mini": "m"
+  },
+  "providerModelAliases": {},
+  "effortAliases": {
+    "none": "—",
+    "minimal": "MIN",
+    "low": "L",
+    "medium": "M",
+    "high": "H",
+    "xhigh": "XH",
+    "max": "MAX",
+    "ultra": "ULT"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mumchristmas/RehireBar/main/docs/integrations/agent-status-v1.schema.json",
+  "title": "RehireBar Agent Status v1",
+  "type": "object",
+  "required": ["schemaVersion", "providerID", "observedAt", "tasks"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "providerID": { "type": "string", "minLength": 1 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "tasks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/task" }
+    }
+  },
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "required": ["scopeID", "taskID"],
+      "properties": {
+        "scopeID": { "type": "string", "minLength": 1 },
+        "taskID": { "type": "string", "minLength": 1 }
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": ["identity", "title", "location", "state", "isCompactingContext"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/identity" },
+        "title": { "type": "string", "minLength": 1 },
+        "projectName": { "type": "string" },
+        "projectID": { "type": "string", "minLength": 1 },
+        "location": { "enum": ["local", "remote"] },
+        "locationLabel": { "type": "string" },
+        "state": { "enum": ["working", "syncing", "waiting", "error", "idle", "unknown"] },
+        "stateObservedAt": { "type": "string", "format": "date-time" },
+        "activeSince": { "type": "string", "format": "date-time" },
+        "lastActivityAt": { "type": "string", "format": "date-time" },
+        "model": { "type": "string" },
+        "effort": { "type": "string" },
+        "serviceTier": { "type": "string" },
+        "usedTokens": { "type": "integer", "minimum": 0 },
+        "contextWindow": { "type": "integer", "exclusiveMinimum": 0 },
+        "contextObservedAt": { "type": "string", "format": "date-time" },
+        "isCompactingContext": { "type": "boolean" },
+        "openURL": { "type": "string", "format": "uri" }
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mumchristmas/RehireBar/main/docs/integrations/model-display-v1.schema.json",
+  "title": "RehireBar Model Display Configuration v1",
+  "type": "object",
+  "required": ["schemaVersion", "rules", "modelAliases", "modelSuffixAliases", "providerModelAliases", "effortAliases"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "rules": {
+      "type": "object",
+      "required": ["caseSensitive", "stripPrefixes", "integerVersionSuffix", "uppercaseUnknownEffort", "effortSeparator"],
+      "properties": {
+        "caseSensitive": { "type": "boolean" },
+        "stripPrefixes": {
+          "type": "array", "maxItems": 32,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "integerVersionSuffix": { "type": "string", "maxLength": 8 },
+        "uppercaseUnknownEffort": { "type": "boolean" },
+        "effortSeparator": { "type": "string", "maxLength": 8 }
+      }
+    },
+    "modelAliases": { "$ref": "#/$defs/aliases" },
+    "modelSuffixAliases": {
+      "allOf": [
+        { "$ref": "#/$defs/aliases" },
+        { "propertyNames": { "not": { "pattern": "-" } } }
+      ]
+    },
+    "providerModelAliases": {
+      "type": "object", "maxProperties": 256,
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 512 },
+      "additionalProperties": { "$ref": "#/$defs/aliases" }
+    },
+    "effortAliases": { "$ref": "#/$defs/aliases" }
+  },
+  "$defs": {
+    "aliases": {
+      "type": "object", "maxProperties": 1024,
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 512 },
+      "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 64 }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "providerID": "example-agent",
+  "observedAt": "2026-09-05T08:30:00Z",
+  "tasks": [
+    {
+      "identity": {
+        "scopeID": "workstation",
+        "taskID": "task-42"
+      },
+      "title": "Refactor the payment service",
+      "projectName": "Checkout",
+      "location": "local",
+      "state": "working",
+      "stateObservedAt": "2026-09-05T08:29:58Z",
+      "activeSince": "2026-09-05T08:27:10Z",
+      "model": "example-model",
+      "effort": "high",
+      "isCompactingContext": false,
+      "openURL": "https://agent.example/tasks/task-42",
+      "projectID": "example-project",
+      "lastActivityAt": "2026-09-05T08:27:10Z"
+    }
+  ]
+}

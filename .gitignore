@@ -1,0 +1,24 @@
+# SwiftPM and packaged applications
+/.build/
+/dist/
+
+# GitHub Release assets are uploaded separately, not committed.
+/release/*.app
+/release/*.zip
+/release/SHA256SUMS*
+/release/test/
+
+# Never commit local evidence or machine data.
+/artifacts/
+/.codex/
+*.log
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Xcode and editor state
+.DS_Store
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/

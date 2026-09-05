@@ -10,6 +10,10 @@ RehireBar 把本地与远程 AI 任务、模型、上下文和额度，放到 Ma
 
 [English](README.md) · [文档](docs/README.md)
 
+![RehireBar 实体 Touch Bar 界面：剩余额度、运行中任务、等待中的远程任务和空闲任务](docs/assets/rehirebar-touchbar-zh-CN.png)
+
+<sub>实体 Touch Bar 截图，使用示例任务与数值。左侧显示额度剩余和重置时间；任务卡显示状态、模型／推理档位、上下文已用比例，运行中任务还显示耗时。</sub>
+
 - 显示运行、等待、失败、同步和未知等任务状态。
 - 点任务直接打开；放不下就横向滑动。
 - 不可用的数据保持隐藏，过期的活跃状态自动失效。

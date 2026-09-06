@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### 0.5.5 — local development
+## 0.5.5 — 2026-09-06
 
 - Start collapsed and open only from the Control Strip icon or **Show Touch Bar**.
   Background refresh, app activation, approval layout changes, and wake events

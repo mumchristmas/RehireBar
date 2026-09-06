@@ -28,12 +28,10 @@
 ├── Sources/
 │   ├── AgentStatusCore/     Foundation-only public contracts and cache
 │   └── RehireBar/             Adapters, state resolution, AppKit, lifecycle
-├── Tests/RehireBarTests/      Sanitized automated tests
-├── docs/                    Public user and integration documentation
+├── Tests/RehireBarTests/      Automated tests
+├── docs/                    User and integration documentation
 ├── scripts/                 Build, verification, and developer entrypoints
 ├── Package.swift
 ├── README.md
 └── README.zh-CN.md
 ```
-
-This public tree contains no private development records, performance traces, raw logs, local databases, or task screenshots.

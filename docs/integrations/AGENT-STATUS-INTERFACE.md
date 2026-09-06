@@ -74,7 +74,9 @@ metadata-only updates, and focus changes. `observedAt` and `stateObservedAt` con
 freshness and must not substitute for activity. If `lastActivityAt` is absent, a
 reported `activeSince` may supply a known start time; otherwise activity stays absent.
 
-Monitoring order is `working`, `waiting`, `error`, `syncing`, then idle/unknown.
+Default monitoring order is `working`, `waiting`, `error`, `syncing`, then idle/unknown.
+The optional waiting-first preference moves `waiting` and `error` ahead of
+`working`. This changes presentation order, not the published state or identity.
 Within a state, active projects come first, followed by project and task activity
 in descending time order. Full task identity only breaks ties; this never collapses
 the tasks of one project into a single entry.

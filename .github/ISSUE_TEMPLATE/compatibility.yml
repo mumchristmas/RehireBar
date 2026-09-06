@@ -1,0 +1,30 @@
+name: Compatibility or monitoring issue
+description: Report a task-state, navigation, or hardware compatibility problem.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: RehireBar version and build
+      placeholder: "For example: 0.5.2 (13)"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and observed behavior
+      description: Include the expected result, task states, selected task order, and whether the task is local, SSH, or paired-device Remote Control.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: macOS version, Mac model, Apple silicon or Intel, desktop application/version, and Codex CLI version. Note if an Intel binary is running under Rosetta.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Doctor report (RehireBar 0.5.3+)
+      description: Paste the output of `RehireBar doctor --json`. This differs from private `status.json` or raw session logs; keep those local.
+      render: json

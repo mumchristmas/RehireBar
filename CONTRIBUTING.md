@@ -39,6 +39,13 @@ Model labels are defined by [the model display interface](docs/integrations/MODE
 
 Add user-visible changes to the appropriate category under `Unreleased` in `CHANGELOG.md`.
 
+When testing a new desktop or macOS version, record the exact versions and separate
+observed behavior from readiness checks in [Compatibility](docs/COMPATIBILITY.md).
+Use [the doctor command](docs/DIAGNOSTICS.md) for a report without private task
+metadata. Its successful exit means the report was generated, not that every
+integration passed. Verify task navigation and approval delivery through explicit
+user actions; a socket or registered URL handler is insufficient evidence.
+
 Generated app bundles belong in `dist/`. Raw screenshots, logs, and rollback bundles are local artifacts and must not be committed; publish only minimal, sanitized evidence under `docs/assets/`.
 
 The packaging script remaps source paths and strips debug-map records from its binary copy before signing. Local SwiftPM build products retain their debugging information. Bundle verification rejects embedded home-directory paths.
@@ -48,6 +55,12 @@ cached Command Line Tools SDK being paired with a different Xcode compiler.
 For release packaging, `bash scripts/build-release.sh` builds and verifies separate
 Apple silicon and Intel ZIPs plus `SHA256SUMS` under `release/`. Verification checks
 each Mach-O architecture so the filename cannot silently mislabel a build.
+
+CI retains the release archives from each macOS runner and executes that runner's
+native archive through `doctor --json`. For publication, select the arm64 ZIP from
+the Apple silicon runner and the x86_64 ZIP from the Intel runner at the verified
+source revision, then compute `SHA256SUMS` for that selected pair. Verify and run
+the downloaded archives again before publishing them.
 
 To build, verify, and run the release on this Mac:
 

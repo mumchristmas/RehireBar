@@ -2,12 +2,16 @@
 
 RehireBar requires macOS 15 or later and a physical Touch Bar. The Codex integration needs Codex CLI; task navigation and approval delivery need Codex Desktop.
 
+Check [Compatibility](COMPATIBILITY.md) for the tested desktop application and
+version, including Codex inside the current ChatGPT desktop app. Other agents need
+a status publisher; an interface alone does not install a Claude Code or OpenCode adapter.
+
 ## Download the app
 
 Open the [latest release](https://github.com/mumchristmas/RehireBar/releases/latest) and download the ZIP for your Mac plus `SHA256SUMS`:
 
-- `RehireBar-0.5.2-macos-arm64.zip` — Apple Silicon.
-- `RehireBar-0.5.2-macos-x86_64.zip` — Intel.
+- `RehireBar-0.5.3-macos-arm64.zip` — Apple Silicon.
+- `RehireBar-0.5.3-macos-x86_64.zip` — Intel.
 
 Xcode is not required to use a downloaded app. Both builds require macOS 15+. Apple's [macOS Sequoia compatibility list](https://support.apple.com/en-us/120282) includes the 2018–2020 Intel Touch Bar MacBook Pro generations. The Intel build does not add support for the older macOS versions on 2016–2017 models.
 
@@ -15,7 +19,7 @@ In Terminal, calculate the checksum for your downloaded file; for example:
 
 ```bash
 cd ~/Downloads
-shasum -a 256 RehireBar-0.5.2-macos-arm64.zip
+shasum -a 256 RehireBar-0.5.3-macos-arm64.zip
 ```
 
 Compare the complete result with the matching filename in `SHA256SUMS`. Extract the ZIP, quit other Touch Bar status helpers, then move `RehireBar.app` to Applications and open it.
@@ -64,15 +68,23 @@ For local release acceptance, `bash scripts/test-release.sh --build` verifies th
 
 ## Custom Codex locations
 
-The login item does not inherit your interactive shell PATH. RehireBar looks for Codex CLI at `~/.local/bin/codex`, `/opt/homebrew/bin/codex`, and `/usr/local/bin/codex`.
+The login item does not inherit your interactive shell PATH. RehireBar looks for
+Codex CLI at `~/.local/bin/codex`, the bundled executable in
+`/Applications/ChatGPT.app/Contents/Resources/codex`, `/opt/homebrew/bin/codex`, and
+`/usr/local/bin/codex`, in that order.
 
 For a launch from a shell, override the executable or Desktop bundle identifier when needed:
 
 ```bash
 export REHIREBAR_CODEX_PATH='/absolute/path/to/codex'
 export REHIREBAR_BUNDLE_ID='your.codex.bundle.identifier'
-open '/Applications/RehireBar.app'
+'/Applications/RehireBar.app/Contents/MacOS/RehireBar'
 ```
+
+Run the executable directly for this shell-specific override; quit an already
+running RehireBar first. This does not configure the separately launched login item.
+In RehireBar 0.5.3 and later, use [the doctor command](DIAGNOSTICS.md) to see which
+desktop bundle and CLI version the current process detects.
 
 ## Developer ID distribution
 

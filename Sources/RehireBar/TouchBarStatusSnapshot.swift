@@ -92,6 +92,11 @@ struct TouchBarStatusSnapshot: Equatable, Sendable {
             sessions: includesSessions ? sessions : nil
         )
     }
+
+    func orderingSessions(by mode: SessionSortMode) -> Self {
+        .init(usage: usage, session: session,
+              sessions: includesSessions ? SessionMonitoringOrder.sorted(sessions, mode: mode) : nil)
+    }
 }
 
 protocol StatusFetching: Sendable {

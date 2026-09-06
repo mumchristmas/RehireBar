@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mumchristmas/RehireBar/blob/main/docs/doctor-v1.schema.json",
+  "title": "RehireBar doctor report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "collectedAt", "app", "host", "configuredDesktopBundleIdentifier", "cli", "sources", "navigation", "cache", "taskOrder", "runtimeProbe", "approvalDelivery"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "collectedAt": { "type": "string", "format": "date-time" },
+    "app": { "$ref": "#/$defs/application" },
+    "desktop": { "$ref": "#/$defs/application" },
+    "configuredDesktopBundleIdentifier": { "type": "string" },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["macOS", "processArchitecture", "meetsMinimumOS", "touchBar"],
+      "properties": {
+        "macOS": { "type": "string" },
+        "processArchitecture": { "enum": ["arm64", "x86_64", "unknown"] },
+        "processTranslated": { "type": "boolean" },
+        "hardwareModel": { "type": "string" },
+        "meetsMinimumOS": { "type": "boolean" },
+        "touchBar": { "enum": ["detected", "not-detected"] }
+      }
+    },
+    "cli": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["available", "missing", "version-unavailable"] },
+        "version": { "type": "string" }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktopCatalogPresent", "sessionDirectoryPresent", "desktopLogDirectoryPresent", "ipcSocket", "agentPublisherDirectoryPresent"],
+      "properties": {
+        "desktopCatalogPresent": { "type": "boolean" },
+        "sessionDirectoryPresent": { "type": "boolean" },
+        "desktopLogDirectoryPresent": { "type": "boolean" },
+        "ipcSocket": { "enum": ["present-unprobed", "missing"] },
+        "agentPublisherDirectoryPresent": { "type": "boolean" }
+      }
+    },
+    "navigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "matchesConfiguredDesktop", "taskOpening"],
+      "properties": {
+        "status": { "enum": ["registered", "unregistered"] },
+        "handlerBundleIdentifier": { "type": "string" },
+        "matchesConfiguredDesktop": { "type": "boolean" },
+        "taskOpening": { "const": "not-tested" }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "quota", "context", "model", "runtimeState"],
+      "properties": {
+        "status": { "enum": ["readable", "unreadable", "missing"] },
+        "quota": { "$ref": "#/$defs/freshness" },
+        "context": { "$ref": "#/$defs/freshness" },
+        "model": { "$ref": "#/$defs/freshness" },
+        "runtimeState": { "const": "not-stored-in-cache" }
+      }
+    },
+    "taskOrder": { "enum": ["running-first", "waiting-first"] },
+    "runtimeProbe": { "const": "not-run" },
+    "approvalDelivery": { "const": "not-tested-explicit-agent-registration-required" }
+  },
+  "$defs": {
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "bundleIdentifier": { "type": "string" },
+        "version": { "type": "string" },
+        "build": { "type": "string" }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "freshForSeconds", "usableForSeconds"],
+      "properties": {
+        "state": { "enum": ["fresh", "stale", "expired", "missing", "undated", "invalid-timestamp"] },
+        "ageSeconds": { "type": "integer", "minimum": 0 },
+        "freshForSeconds": { "type": "integer", "minimum": 0 },
+        "usableForSeconds": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.5.3 — 2026-09-06
+
+- Add a persistent **Task order → Waiting first** option that brings waiting and
+  failed tasks ahead of running tasks. The default remains running first; changing
+  order preserves task identities and does not reopen a collapsed Touch Bar.
+- Add `RehireBar doctor --json` for bounded, read-only environment diagnostics:
+  actual desktop/CLI versions, Touch Bar detection, registered task navigation,
+  data-source presence, and source-specific cache freshness. Readiness is reported
+  separately from untested runtime behavior.
+- Document the current ChatGPT/Codex host identity, integration boundaries, and
+  hardware acceptance gaps; add a structured compatibility issue template.
+
 ## 0.5.2 — 2026-09-06
 
 First public release of RehireBar.

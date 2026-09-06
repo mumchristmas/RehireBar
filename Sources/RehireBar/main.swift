@@ -44,6 +44,9 @@ private func handleApprovalRequest(_ arguments: [String]) -> Bool {
 
 if handleApprovalRequest(Array(CommandLine.arguments.dropFirst())) { exit(0) }
 if handleThreadSnapshotRequest(Array(CommandLine.arguments.dropFirst())) { exit(0) }
+if CommandLine.arguments.dropFirst().first == "doctor" {
+    exit(DoctorCommand.run(arguments: Array(CommandLine.arguments.dropFirst(2))))
+}
 
 @MainActor
 private final class ApplicationDelegate: NSObject, NSApplicationDelegate {

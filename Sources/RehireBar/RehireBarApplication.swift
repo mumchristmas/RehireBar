@@ -97,13 +97,19 @@ final class RehireBarApplication {
             dataChangeMonitor: CodexDataChangeMonitor(),
             relauncher: ApplicationRelauncher(),
             wakeMonitor: wakeMonitor,
-            logger: { NSLog("%@", $0) }
+            logger: { NSLog("%@", $0) },
+            sortMode: { SessionSortMode(preference: defaults.string(forKey: SessionSortMode.preferenceKey)) }
         )
         let approvalCoordinator = (presenter as? TouchBarPresenter).map {
             ConversationApprovalCoordinator(store: approvalStore, presenter: $0)
         }
         let resolvedApplicationMenu = applicationMenu ?? ApplicationMenuController(
-            onShow: { [weak coordinator] in coordinator?.restoreFromApplicationMenu() }
+            onShow: { [weak coordinator] in coordinator?.restoreFromApplicationMenu() },
+            sortMode: { SessionSortMode(preference: defaults.string(forKey: SessionSortMode.preferenceKey)) },
+            onSortModeChange: { [weak coordinator] mode in
+                defaults.set(mode.rawValue, forKey: SessionSortMode.preferenceKey)
+                coordinator?.refreshTaskOrder()
+            }
         )
         return RehireBarApplication(
             coordinator: coordinator,

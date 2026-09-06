@@ -10,9 +10,15 @@ RehireBar is a native MacBook Pro Touch Bar monitor for local and remote AI task
 
 [简体中文](README.zh-CN.md) · [Docs](docs/README.md)
 
+![RehireBar hero: a close-up MacBook Pro Touch Bar with enlarged running and waiting task details](docs/assets/rehirebar-hero-en.png)
+
+<sub>Illustrative composite with example task data. <a href="NOTICE.md#hero-images">Image credits</a>.</sub>
+
+**Full Touch Bar**
+
 ![RehireBar on a physical Touch Bar: remaining quota, a running task, a remote waiting task, and an idle task](docs/assets/rehirebar-touchbar-en.png)
 
-<sub>Real Touch Bar capture with example task names and values. Left: quota remaining and reset time. Each task: status, model/effort, and context used. Running tasks also show elapsed time.</sub>
+<sub>Full, uncropped Touch Bar capture with example task names and values. Left: quota remaining and reset time. Each task: status, model/effort, and context used. Running tasks also show elapsed time.</sub>
 
 - See running, waiting, failed, syncing, and unknown task states.
 - Tap a task to open it. Swipe for the rest.

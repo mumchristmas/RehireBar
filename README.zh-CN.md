@@ -10,9 +10,15 @@ RehireBar 原生运行在 macOS 上，把本地与远程 AI 任务、模型、�
 
 [English](README.md) · [文档](docs/README.md)
 
+![RehireBar 使用氛围图：MacBook Pro Touch Bar 局部实机与运行、等待任务的放大细节](docs/assets/rehirebar-hero-zh-CN.png)
+
+<sub>使用示例任务数据的合成示意图。<a href="NOTICE.md#hero-images">图片来源</a>。</sub>
+
+**完整 Touch Bar 界面**
+
 ![RehireBar 实体 Touch Bar 界面：剩余额度、运行中任务、等待中的远程任务和空闲任务](docs/assets/rehirebar-touchbar-zh-CN.png)
 
-<sub>实体 Touch Bar 截图，使用示例任务与数值。左侧显示额度剩余和重置时间；任务卡显示状态、模型／推理档位、上下文已用比例，运行中任务还显示耗时。</sub>
+<sub>未经裁剪的完整实体 Touch Bar 截图，使用示例任务与数值。左侧显示额度剩余和重置时间；任务卡显示状态、模型／推理档位、上下文已用比例，运行中任务还显示耗时。</sub>
 
 - 显示运行、等待、失败、同步和未知等任务状态。
 - 点任务直接打开；放不下就横向滑动。

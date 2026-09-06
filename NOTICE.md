@@ -5,3 +5,9 @@ RehireBar is derived from [Codex Status Touch Bar](https://github.com/binlabongb
 The original copyright and permission notice is preserved in `LICENSE`. RehireBar includes subsequent changes by RehireBar contributors. Source distributions retain both files; application bundles include them in `Contents/Resources/`.
 
 RehireBar is an independent community project and is not affiliated with Apple or OpenAI.
+
+## Hero images
+
+The English and Chinese hero images in `docs/assets/rehirebar-hero-en.png` and `docs/assets/rehirebar-hero-zh-CN.png` use a [MacBook Pro Touch Bar photograph by Nik](https://unsplash.com/photos/black-and-gray-lenovo-laptop-3LJdk7FlqrI), available under the [Unsplash License](https://unsplash.com/license).
+
+These images are AI-assisted illustrative composites: the photograph was reframed and the RehireBar interface was rendered from screenshots with example task names and values. The separate `rehirebar-touchbar-en.png` and `rehirebar-touchbar-zh-CN.png` files are complete, uncropped captures of the actual Touch Bar interface.

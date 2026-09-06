@@ -95,7 +95,6 @@ final class RehireBarApplication {
             statusCache: statusCache,
             selectedThreadMonitor: selectedThreadTracker,
             dataChangeMonitor: CodexDataChangeMonitor(),
-            relauncher: ApplicationRelauncher(),
             wakeMonitor: wakeMonitor,
             logger: { NSLog("%@", $0) },
             sortMode: { SessionSortMode(preference: defaults.string(forKey: SessionSortMode.preferenceKey)) }

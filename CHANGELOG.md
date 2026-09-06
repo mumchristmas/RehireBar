@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### 0.5.5 — local development
+
+- Start collapsed and open only from the Control Strip icon or **Show Touch Bar**.
+  Background refresh, app activation, approval layout changes, and wake events
+  never request presentation. Continue monitoring and expiring stale task states.
+- Limit presentation recovery to one immediate composition-reset retry per user
+  action; remove the background presentation watchdog and app-relaunch escalation.
+- Require a fresh version-scoped worktree for each update or debug task, followed
+  by validation and a focused merge into `main` with concise Git history.
+- Thanks to [Empsunrise](https://github.com/Empsunrise) for inspiring this behavior
+  through [Codex Status Touch Bar PR #2](https://github.com/binlabongbom/codex-status-touch-bar/pull/2).
+
 ## 0.5.4 — 2026-09-06
 
 - Show the installed marketing version and build in the menu and through

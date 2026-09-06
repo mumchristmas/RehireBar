@@ -121,7 +121,7 @@ final class SystemModalTouchBarBridge: TouchBarBridging {
               let identifier = plan.systemTrayIdentifier else {
             return false
         }
-        return presentRetainedTouchBar(touchBar, identifier: identifier, notifyRestore: false)
+        return presentRetainedTouchBar(touchBar, identifier: identifier)
     }
 
     func present(_ touchBar: NSTouchBar) -> Bool {
@@ -156,17 +156,16 @@ final class SystemModalTouchBarBridge: TouchBarBridging {
     }
 
     private func restorePresentedTouchBar(_ touchBar: NSTouchBar) -> Bool {
-        guard retainedTouchBar === touchBar,
-              let identifier = plan.systemTrayIdentifier else {
-            return false
-        }
-        return presentRetainedTouchBar(touchBar, identifier: identifier, notifyRestore: true)
+        guard retainedTouchBar === touchBar else { return false }
+        // Refresh even if both attempts fail, but never schedule another opening.
+        let succeeded = presentOnUserRequest(touchBar)
+        onRestore?()
+        return succeeded
     }
 
     private func presentRetainedTouchBar(
         _ touchBar: NSTouchBar,
-        identifier: NSTouchBarItem.Identifier,
-        notifyRestore: Bool
+        identifier: NSTouchBarItem.Identifier
     ) -> Bool {
         beginModalOwnership()
         guard runtime.present(touchBar, trayIdentifier: identifier) else {
@@ -175,7 +174,6 @@ final class SystemModalTouchBarBridge: TouchBarBridging {
             return false
         }
         isPresented = true
-        if notifyRestore { onRestore?() }
         return true
     }
 

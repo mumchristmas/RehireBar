@@ -374,6 +374,7 @@ final class AppCoordinatorTests: XCTestCase {
         let fixture = makeFixture(results: [])
 
         XCTAssertEqual(fixture.presenter.preparePersistentAccessCount, 1)
+        XCTAssertEqual(fixture.presenter.representCount, 0)
         XCTAssertTrue(fixture.presenter.shown.isEmpty)
     }
 
@@ -392,7 +393,7 @@ final class AppCoordinatorTests: XCTestCase {
         await fixture.waitForFetchCount(1)
 
         XCTAssertEqual(fixture.presenter.shown, [snapshot(observedAt: 1)])
-        XCTAssertEqual(fixture.presenter.activatePersistentAccessCount, 1)
+        XCTAssertEqual(fixture.presenter.activatePersistentAccessCount, 0)
         XCTAssertEqual(fixture.scheduler.intervals, [15, 30])
     }
 
@@ -483,11 +484,11 @@ final class AppCoordinatorTests: XCTestCase {
         fixture.coordinator.restoreFromApplicationMenu()
         await fixture.waitForFetchCount(2)
 
-        XCTAssertEqual(fixture.presenter.representCount, 2)
+        XCTAssertEqual(fixture.presenter.representCount, 1)
         XCTAssertEqual(fixture.presenter.shown.last, snapshot(observedAt: 2))
     }
 
-    func testWakeRepresentsMarksStaleAndFetchesImmediatelyWithoutDuplicateTimer() async {
+    func testWakeKeepsCollapsedMarksStaleAndFetchesImmediatelyWithoutDuplicateTimer() async {
         let fixture = makeFixture(results: [
             .success(snapshot(observedAt: 1)),
             .success(snapshot(observedAt: 2)),
@@ -499,7 +500,7 @@ final class AppCoordinatorTests: XCTestCase {
         await fixture.waitForFetchCount(2)
 
         XCTAssertEqual(fixture.presenter.staleMarkCount, 1)
-        XCTAssertEqual(fixture.presenter.representCount, 2)
+        XCTAssertEqual(fixture.presenter.representCount, 0)
         XCTAssertEqual(fixture.scheduler.intervals, intervals)
     }
 
@@ -541,7 +542,7 @@ final class AppCoordinatorTests: XCTestCase {
         await drainTasks()
         let fetchCount = await fixture.fetcher.fetchCount
         XCTAssertEqual(fetchCount, 2)
-        XCTAssertEqual(fixture.presenter.activatePersistentAccessCount, 2)
+        XCTAssertEqual(fixture.presenter.activatePersistentAccessCount, 0)
         XCTAssertEqual(fixture.presenter.shown.last, snapshot(observedAt: 2))
     }
 
@@ -615,6 +616,26 @@ final class AppCoordinatorTests: XCTestCase {
         XCTAssertEqual(fixture.presenter.shown, [snapshot(observedAt: 1)])
         XCTAssertEqual(fixture.presenter.unavailableCount, 0)
         XCTAssertEqual(fixture.presenter.hideCount, 1)
+    }
+
+    func testBackgroundEventsNeverPresentAfterFailedMenuRequest() async {
+        let fixture = makeFixture(results: (1...5).map { .success(snapshot(observedAt: Double($0))) })
+        await fixture.waitForFetchCount(1)
+        fixture.presenter.representResult = false
+        fixture.coordinator.restoreFromApplicationMenu()
+        await fixture.waitForFetchCount(2)
+        fixture.scheduler.fireHealthCheck()
+        fixture.scheduler.fire()
+        await fixture.waitForFetchCount(3)
+        fixture.activity.emit(true)
+        fixture.activity.emit(false)
+        fixture.selectedThreadMonitor.emitChange()
+        await fixture.waitForFetchCount(4)
+        fixture.wake.emit()
+        await fixture.waitForFetchCount(5)
+        fixture.scheduler.fireHealthCheck()
+        XCTAssertEqual(fixture.presenter.representCount, 1)
+        XCTAssertEqual(fixture.presenter.activatePersistentAccessCount, 0)
     }
 
     private func makeFixture(
@@ -858,7 +879,8 @@ private final class FakeUsagePresenter: UsagePresenting, ManualRefreshBinding,
     func show(_ snapshot: UsageSnapshot) { shown.append(snapshot) }
     func showUnavailable() { unavailableCount += 1 }
     func markRenderedStatusStale() { staleMarkCount += 1 }
-    func represent() -> Bool { representCount += 1; return true }
+    var representResult = true
+    func represent() -> Bool { representCount += 1; return representResult }
     func hide() { hideCount += 1 }
     func emitManualRefresh() { onManualRefresh?() }
     func emitExplicitRestore() { onExplicitRestore?() }
@@ -872,7 +894,8 @@ private final class FakeTouchBarStatusPresenter: UsagePresenting {
     func show(_ snapshot: UsageSnapshot) {}
     func showStatus(_ status: TouchBarStatusSnapshot) { statuses.append(status) }
     func showUnavailable() { unavailableCount += 1 }
-    func represent() -> Bool { representCount += 1; return true }
+    var representResult = true
+    func represent() -> Bool { representCount += 1; return representResult }
     func hide() {}
 }
 

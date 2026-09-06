@@ -11,7 +11,14 @@ Thank you for improving RehireBar.
 
 ## Development workflow
 
-1. Fork the repository and create a focused branch.
+1. Before every update or debugging task, create a fresh worktree from current
+   `main`, with a branch named `codex/<version>-<topic>`. Preserve any uncommitted
+   work in existing worktrees. For example:
+
+   ```bash
+   git worktree add -b codex/0.5.5-respect-collapse ../RehireBar-0.5.5 main
+   cd ../RehireBar-0.5.5
+   ```
 2. Add or update tests for behavior changes.
 3. Run:
 
@@ -23,7 +30,12 @@ Thank you for improving RehireBar.
    ```
 
 4. On physical Touch Bar hardware, manually check any affected presentation, sleep/wake, Control Strip, or approval behavior.
-5. Open a pull request describing the change, user impact, validation, and known limitations.
+5. Describe the change, user impact, validation, and known limitations in a pull
+   request or local review. Consolidate temporary fixups into one coherent commit,
+   then merge the validated branch into `main` (prefer `git merge --ff-only`).
+   If `main` has advanced, integrate it in the worktree and rerun affected checks
+   before merging. Never rewrite published history. Push or publish only when
+   requested. Start the next update or debug session in a new worktree.
 
 Keep pull requests focused. Do not include credentials, raw Codex sessions, generated build directories, or private machine paths.
 

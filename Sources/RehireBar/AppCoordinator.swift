@@ -10,13 +10,11 @@ protocol ActivityMonitoring: AnyObject {
 @MainActor
 protocol UsagePresenting: AnyObject {
     func preparePersistentAccess()
-    func activatePersistentAccess()
     func show(_ snapshot: UsageSnapshot)
     func showStatus(_ status: TouchBarStatusSnapshot)
     func showUnavailable()
     func markRenderedStatusStale()
     func represent() -> Bool
-    func resetCompositionAndRepresent() -> Bool
     func hide()
 }
 
@@ -37,7 +35,6 @@ protocol PresentationRestoreBinding: AnyObject {
 
 extension UsagePresenting {
     func preparePersistentAccess() {}
-    func activatePersistentAccess() {}
 
     func showStatus(_ status: TouchBarStatusSnapshot) {
         if let usage = status.usage { show(usage) }
@@ -46,7 +43,6 @@ extension UsagePresenting {
 
     func markRenderedStatusStale() {}
     func represent() -> Bool { true }
-    func resetCompositionAndRepresent() -> Bool { true }
 }
 
 @MainActor
@@ -69,6 +65,7 @@ protocol RefreshScheduling: AnyObject {
 
 @MainActor
 final class AppCoordinator {
+    private static let evidenceExpiryInterval: TimeInterval = 15
     private static let fullRefreshInterval: TimeInterval = 30
     private static let initialLiveRefreshInterval: TimeInterval = 5
     private static let activeLiveRefreshInterval: TimeInterval = 2.5
@@ -85,7 +82,6 @@ final class AppCoordinator {
     private let statusCache: any StatusCacheLoading
     private let selectedThreadMonitor: any SelectedThreadMonitoring
     private let dataChangeMonitor: any DataChangeMonitoring
-    private let relauncher: any ApplicationRelaunching
     private let wakeMonitor: any WakeMonitoring
     private let logger: @MainActor (String) -> Void
     private let now: @MainActor () -> Date
@@ -93,7 +89,7 @@ final class AppCoordinator {
 
     private var refreshCancellation: (any RefreshCancellation)?
     private var liveRefreshCancellation: (any RefreshCancellation)?
-    private var healthCancellation: (any RefreshCancellation)?
+    private var evidenceExpiryCancellation: (any RefreshCancellation)?
     private var fetchTask: Task<Void, Never>?
     private var startupFetchTask: Task<Void, Never>?
     private var liveFetchTask: Task<Void, Never>?
@@ -106,7 +102,6 @@ final class AppCoordinator {
     private var liveRefreshPending = false
     private var hasAttemptedStartupFetch = false
     private var hasStarted = false
-    private var recovery = TouchBarRecoveryController()
 
     init(
         activityMonitor: any ActivityMonitoring,
@@ -119,7 +114,6 @@ final class AppCoordinator {
         statusCache: any StatusCacheLoading = NoopStatusCache(),
         selectedThreadMonitor: any SelectedThreadMonitoring = NoopSelectedThreadMonitor(),
         dataChangeMonitor: any DataChangeMonitoring = NoopDataChangeMonitor(),
-        relauncher: any ApplicationRelaunching = NoopApplicationRelauncher(),
         wakeMonitor: any WakeMonitoring = NoopWakeMonitor(),
         logger: @escaping @MainActor (String) -> Void = { _ in },
         now: @escaping @MainActor () -> Date = { .now },
@@ -135,7 +129,6 @@ final class AppCoordinator {
         self.statusCache = statusCache
         self.selectedThreadMonitor = selectedThreadMonitor
         self.dataChangeMonitor = dataChangeMonitor
-        self.relauncher = relauncher
         self.wakeMonitor = wakeMonitor
         self.logger = logger
         self.now = now
@@ -204,14 +197,12 @@ final class AppCoordinator {
             self?.setActive(isActive)
         }
         wakeMonitor.start { [weak self] in self?.handleWake() }
-        healthCancellation = scheduler.scheduleRepeating(
-            every: TouchBarRecoveryController.healthInterval
+        evidenceExpiryCancellation = scheduler.scheduleRepeating(
+            every: Self.evidenceExpiryInterval
         ) { [weak self] in
-            self?.runHealthCheck()
+            self?.expireRetainedEvidence()
         }
         if !isRefreshRunning {
-            recovery.observe(.manualInteraction)
-            recordRecovery(presenter.represent(), action: .refreshAndRepresent)
             startRefreshPipeline(preserveRenderedStatusOnFailure: cached.hasDisplayValues)
         }
     }
@@ -235,10 +226,11 @@ final class AppCoordinator {
         liveRefreshPending = false
         consecutiveLiveFailures = 0
         refreshCancellation?.cancel()
+        refreshCancellation = nil
         liveRefreshCancellation?.cancel()
         liveRefreshCancellation = nil
-        healthCancellation?.cancel()
-        healthCancellation = nil
+        evidenceExpiryCancellation?.cancel()
+        evidenceExpiryCancellation = nil
         presenter.hide()
     }
 
@@ -248,7 +240,6 @@ final class AppCoordinator {
         isActive = active
 
         if active {
-            presenter.activatePersistentAccess()
             if !isRefreshRunning {
                 startRefreshPipeline(preserveRenderedStatusOnFailure: false)
             }
@@ -268,22 +259,17 @@ final class AppCoordinator {
         liveRefreshPending = false
         consecutiveLiveFailures = 0
         cancelScheduledLiveRefresh()
-        recovery.observe(.manualInteraction)
-        recordRecovery(presenter.represent(), action: .refreshAndRepresent)
         startRefreshPipeline(preserveRenderedStatusOnFailure: true)
     }
 
     private func handleExplicitRestore() {
         guard hasStarted else { return }
-        recovery.observe(.manualInteraction)
-        recovery.observe(.presentationSucceeded)
         refreshNow(preserveRenderedStatusOnFailure: true)
     }
 
     func restoreFromApplicationMenu() {
         guard hasStarted else { return }
-        recovery.observe(.manualInteraction)
-        recordRecovery(presenter.represent(), action: .refreshAndRepresent)
+        _ = presenter.represent()
         refreshNow(preserveRenderedStatusOnFailure: true)
     }
 
@@ -315,31 +301,6 @@ final class AppCoordinator {
         } else if startupFetchTask == nil {
             refreshLive(replacingInFlight: true)
             refresh(preserveRenderedStatusOnFailure: preserveRenderedStatusOnFailure)
-        }
-    }
-
-    private func runHealthCheck() {
-        guard hasStarted else { return }
-        expireRetainedEvidence()
-        let action = recovery.evaluate()
-        switch action {
-        case .none:
-            break
-        case .refreshAndRepresent:
-            recordRecovery(presenter.represent(), action: action)
-        case .resetCompositionAndRepresent:
-            recordRecovery(presenter.resetCompositionAndRepresent(), action: action)
-        case .relaunchApplication:
-            recovery.observe(.relaunchRequested)
-            relauncher.relaunch()
-        }
-    }
-
-    private func recordRecovery(_ succeeded: Bool, action: TouchBarRecoveryAction) {
-        if succeeded {
-            recovery.observe(.presentationSucceeded)
-        } else {
-            recovery.observe(.recoveryFailed(action))
         }
     }
 
@@ -511,6 +472,7 @@ final class AppCoordinator {
     }
 
     private func expireRetainedEvidence() {
+        guard hasStarted else { return }
         guard let lastStatus else { return }
         let referenceDate = now()
         let status = TouchBarStatusSnapshot(

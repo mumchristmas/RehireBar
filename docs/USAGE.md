@@ -9,7 +9,13 @@ opens the native update workflow; you decide whether to install and restart.
 Background update checks and automatic installation are off by default. See
 [Application updates](UPDATES.md).
 
-Tap the status-strip Control Strip icon to present the full status bar. Use the close control on the left to collapse it back to the native Control Strip. Background data refreshes, the 15-second health check, and ordinary Codex foreground activation do not reopen a collapsed bar. The app preserves native brightness, volume, and other macOS controls.
+The app starts collapsed. Tap the status-strip Control Strip icon or choose
+**Show Touch Bar** from the menu to open it. Use the close control on the left to
+collapse it back to the native Control Strip. It stays collapsed until another
+explicit opening action. Monitoring continues, including task-state expiry,
+while background refreshes, foreground activation, and approval changes leave
+presentation alone. Native brightness, volume, and other macOS controls remain
+available.
 
 The menu-bar app icon provides **Show Touch Bar** to restore the full bar,
 **Task order** to choose monitoring priority, and **Quit RehireBar** to stop the
@@ -98,6 +104,13 @@ Unanswered entries expire after 24 hours. The local queue stores at most 32 reco
 
 ## Sleep and wake behavior
 
-After the Mac wakes, the app cancels a request inherited from before sleep, restores its retained Touch Bar, and starts one fresh request. A watchdog checks presentation every 15 seconds. Recovery escalates from re-presentation to an app-only relaunch, limited to once every five minutes.
+After the Mac wakes, the app cancels inherited requests and starts fresh reads
+without opening the Touch Bar. A 15-second check expires stale task evidence;
+it never requests presentation or restarts the app.
+
+The private presentation bridge has no reliable system-dismissal callback. Each
+explicit opening action gets at most one immediate composition-reset retry if
+its presentation call fails. There is no delayed recovery. If the display later
+needs restoring, tap the icon or choose **Show Touch Bar** again.
 
 The app does not keep the physical display awake and does not prevent normal system sleep. User keyboard or mouse activity remains governed by macOS power settings.

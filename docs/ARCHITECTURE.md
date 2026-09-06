@@ -53,6 +53,20 @@ This rule is especially important for remote tasks: catalog activity can mean ti
 | Presentation | `TouchBarPresenter`, `TouchBarGeometry`, `SystemModalRuntime` | Lay out available facts without provider knowledge. |
 | Explicit actions | `WorkspaceTaskOpener`, `ConversationApprovalCoordinator` | Open only tapped task URLs and deliver only registered decisions. |
 
+## Presentation intent
+
+Preparing the Control Strip item and rendering retained content never open the
+system-modal bar. Startup, source events, approvals, activation, and wake only
+update facts. The Control Strip action and **Show Touch Bar** menu action call
+`presentOnUserRequest`, which makes one attempt and at most one synchronous
+composition-reset retry. Neither path schedules later presentation or relaunch.
+
+The bridge's `isPresented` flag tracks calls made by this process, not verified
+physical visibility: system dismissal has no reliable callback, and invoking the
+private selector successfully does not prove that the display appeared. Background
+logic therefore cannot use that flag as consent to restore the bar. The separate
+15-second evidence-expiry timer continues to invalidate stale task states.
+
 ## Refresh model
 
 Startup and live refresh are separate paths:

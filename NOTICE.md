@@ -16,3 +16,10 @@ The application embeds [Sparkle](https://github.com/sparkle-project/Sparkle), an
 open-source macOS update framework. Its full copyright, permission, and bundled
 component notices are preserved in `Contents/Resources/Sparkle-LICENSE.txt` in
 each application package. Swift Package Manager pins the framework distribution.
+
+The user-triggered Touch Bar presentation behavior was inspired by
+[Empsunrise](https://github.com/Empsunrise)'s
+[Codex Status Touch Bar PR #2](https://github.com/binlabongbom/codex-status-touch-bar/pull/2).
+Thank you for identifying unwanted reopening after dismissal and proposing that
+presentation recovery stay within an explicit user action. RehireBar adapts that
+principle while retaining independent task monitoring and state-expiry checks.

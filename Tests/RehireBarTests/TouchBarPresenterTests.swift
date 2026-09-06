@@ -488,16 +488,61 @@ final class TouchBarPresenterTests: XCTestCase {
         XCTAssertEqual(restoreCount, 0)
     }
 
-    func testPresenterActivationDoesNotForceAnAlreadyRetainedBarToReopen() {
+    func testContentUpdatesDoNotPresentBeforeOpeningOrAfterSystemDismissal() throws {
         let runtime = FakeSystemModalRuntime()
         let bridge = SystemModalTouchBarBridge(runtime: runtime)
         let presenter = TouchBarPresenter(bridge: bridge, logger: { _ in })
-
         presenter.preparePersistentAccess()
-        presenter.activatePersistentAccess()
-        presenter.activatePersistentAccess()
+        for opened in [false, true] {
+            if opened { XCTAssertTrue(presenter.represent()) }
+            // System dismissal has no callback; keep the bridge's ownership flag.
+            for _ in 0..<5 {
+                presenter.showStatus(.init(usage: nil, session: nil))
+                presenter.showUnavailable()
+                presenter.markRenderedStatusStale()
+                presenter.showApproval(try ConversationApproval(
+                    threadID: "11111111-1111-4111-8111-111111111111", question: "Continue?"
+                )) { _ in }
+                presenter.setApprovalSending(true)
+                presenter.restoreMetrics()
+            }
+            XCTAssertEqual(runtime.presentedBars.count, opened ? 1 : 0)
+        }
+        XCTAssertTrue(presenter.represent())
+        XCTAssertEqual(runtime.presentedBars.count, 2)
+    }
 
-        XCTAssertEqual(runtime.presentedBars.count, 1)
+    func testTrayClickRetriesOnceAndRefreshesEvenWhenBothAttemptsFail() throws {
+        let runtime = FakeSystemModalRuntime()
+        let bridge = SystemModalTouchBarBridge(runtime: runtime)
+        let presenter = TouchBarPresenter(bridge: bridge, logger: { _ in })
+        var refreshCount = 0
+        presenter.onExplicitRestore = { refreshCount += 1 }
+        presenter.preparePersistentAccess()
+        let item = try XCTUnwrap(runtime.trayItem as? NSCustomTouchBarItem)
+        let button = try XCTUnwrap(item.view as? NSButton)
+        runtime.presentResult = false
+        button.performClick(nil)
+        XCTAssertEqual(runtime.presentedBars.count, 2)
+        XCTAssertEqual(refreshCount, 1)
+        presenter.showUnavailable()
+        XCTAssertEqual(runtime.presentedBars.count, 2)
+        runtime.presentResult = true
+        button.performClick(nil)
+        XCTAssertEqual(runtime.presentedBars.count, 3)
+        XCTAssertEqual(refreshCount, 2)
+    }
+
+    func testMenuPresentationRetryCanSucceedWithoutAnotherUserAction() {
+        let runtime = FakeSystemModalRuntime()
+        let bridge = SystemModalTouchBarBridge(runtime: runtime)
+        let presenter = TouchBarPresenter(bridge: bridge, logger: { _ in })
+        presenter.preparePersistentAccess()
+        runtime.presentationResults = [false, true]
+        XCTAssertTrue(presenter.represent())
+        XCTAssertEqual(runtime.presentedBars.count, 2)
+        presenter.showUnavailable()
+        XCTAssertEqual(runtime.presentedBars.count, 2)
     }
 
     func testSuccessfulTrayRestoreNotifiesPresenterForAnOutsideCodexRefresh() {
@@ -584,14 +629,14 @@ final class TouchBarPresenterTests: XCTestCase {
 
         XCTAssertFalse(bridge.restorePresentedTouchBar())
 
-        XCTAssertEqual(runtime.trayPresence, [true])
-        XCTAssertEqual(runtime.closeBoxVisibility, [false, true])
+        XCTAssertEqual(runtime.trayPresence, [true, false, true])
+        XCTAssertEqual(runtime.closeBoxVisibility, [false, true, false, true])
         XCTAssertEqual(runtime.addTrayCount, 1)
 
         runtime.presentResult = true
         XCTAssertTrue(bridge.restorePresentedTouchBar())
         XCTAssertEqual(runtime.addTrayCount, 1)
-        XCTAssertEqual(runtime.presentedBars, [bar, bar])
+        XCTAssertEqual(runtime.presentedBars, [bar, bar, bar])
     }
 
     func testFailedRestoreKeepsPreparedOwnershipAndAllowsRetry() {
@@ -603,18 +648,18 @@ final class TouchBarPresenterTests: XCTestCase {
         runtime.presentResult = false
         XCTAssertFalse(bridge.restorePresentedTouchBar())
 
-        XCTAssertEqual(runtime.trayPresence, [true])
-        XCTAssertEqual(runtime.closeBoxVisibility, [false, true])
+        XCTAssertEqual(runtime.trayPresence, [true, false, true])
+        XCTAssertEqual(runtime.closeBoxVisibility, [false, true, false, true])
         XCTAssertEqual(runtime.addTrayCount, 1)
 
         runtime.presentResult = true
         XCTAssertTrue(bridge.restorePresentedTouchBar())
         XCTAssertEqual(runtime.addTrayCount, 1)
-        XCTAssertEqual(runtime.presentedBars, [firstBar, firstBar])
+        XCTAssertEqual(runtime.presentedBars, [firstBar, firstBar, firstBar])
 
         bridge.dismissOwnTouchBar()
-        XCTAssertEqual(runtime.trayPresence, [true, false])
-        XCTAssertEqual(runtime.closeBoxVisibility, [false, true, false, true])
+        XCTAssertEqual(runtime.trayPresence, [true, false, true, false])
+        XCTAssertEqual(runtime.closeBoxVisibility, [false, true, false, true, false, true])
         XCTAssertEqual(runtime.dismissedBars, [firstBar])
     }
 
@@ -1193,8 +1238,8 @@ final class TouchBarPresenterTests: XCTestCase {
         let bridge = UnavailableBridge()
         var messages: [String] = []
         let presenter = TouchBarPresenter(bridge: bridge, logger: { messages.append($0) })
-        presenter.showUnavailable()
-        presenter.showUnavailable()
+        _ = presenter.represent()
+        _ = presenter.represent()
         XCTAssertEqual(messages.count, 1)
     }
 
@@ -1202,11 +1247,11 @@ final class TouchBarPresenterTests: XCTestCase {
         let bridge = UnavailableBridge()
         var messages: [String] = []
         let presenter = TouchBarPresenter(bridge: bridge, logger: { messages.append($0) })
-        presenter.showUnavailable()
+        _ = presenter.represent()
         bridge.presentResult = true
-        presenter.showUnavailable()
+        _ = presenter.represent()
         bridge.presentResult = false
-        presenter.showUnavailable()
+        _ = presenter.represent()
 
         XCTAssertEqual(messages.count, 2)
     }
@@ -1414,7 +1459,7 @@ private final class UnavailableBridge: TouchBarBridging {
     var onRestore: (@MainActor @Sendable () -> Void)?
     var presentResult = false
     func preparePersistentAccess(_ touchBar: NSTouchBar) -> Bool { false }
-    func activatePersistentAccess(_ touchBar: NSTouchBar) -> Bool { false }
+    func activatePersistentAccess(_ touchBar: NSTouchBar) -> Bool { presentResult }
     func present(_ touchBar: NSTouchBar) -> Bool { presentResult }
     func dismissOwnTouchBar() {}
 
@@ -1426,6 +1471,8 @@ private final class FakeSystemModalRuntime: SystemModalRuntime {
     var addTrayResult = true
     var presentResult = true
     var dismissResult = true
+    var presentationResults: [Bool] = []
+    private(set) var trayItem: NSTouchBarItem?
     private(set) var addTrayCount = 0
     private(set) var trayPresence: [Bool] = []
     private(set) var closeBoxVisibility: [Bool] = []
@@ -1433,6 +1480,7 @@ private final class FakeSystemModalRuntime: SystemModalRuntime {
     private(set) var dismissedBars: [NSTouchBar] = []
 
     func addSystemTrayItem(_ item: NSTouchBarItem) -> Bool {
+        trayItem = item
         addTrayCount += 1
         return addTrayResult
     }
@@ -1447,7 +1495,7 @@ private final class FakeSystemModalRuntime: SystemModalRuntime {
 
     func present(_ touchBar: NSTouchBar, trayIdentifier: NSTouchBarItem.Identifier) -> Bool {
         presentedBars.append(touchBar)
-        return presentResult
+        return presentationResults.isEmpty ? presentResult : presentationResults.removeFirst()
     }
 
     func dismiss(_ touchBar: NSTouchBar) -> Bool {

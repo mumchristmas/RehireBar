@@ -30,10 +30,25 @@ available facts.
 - Active state claims expire when their source stops publishing. Prefer `unknown`
   over a stale `working`, `syncing`, or `waiting` state.
 - A task URL is opened only after the user taps that task card.
-- Ordinary refreshes must not reopen a Touch Bar the user manually collapsed.
+- Start collapsed. Only an explicit Control Strip or application-menu action may
+  open the Touch Bar. Background refresh, activation, approvals, and wake events
+  update content without presenting. Keep any presentation retry synchronous and
+  bounded to that action; state-expiry checks must never restore or relaunch UI.
 - Application updates use Sparkle with signed feeds and archives. Keep update
   checks separate from status polling; defaults must require a user-initiated
   check and installation. Never commit private update-signing seeds.
+
+## Local development and Git history
+
+- Before every update or debugging task, create a fresh version-scoped Git
+  worktree and a focused `codex/<version>-<topic>` branch from current `main`.
+  Inspect dirty worktrees first and preserve existing work; never develop directly
+  on `main` or silently carry unrelated changes into the new worktree.
+- Validate in that worktree, then integrate through a merge into `main`.
+  Prefer one coherent commit and a fast-forward merge; squash temporary fixups
+  before integration when needed. Do not rewrite published history.
+- Keep commits focused and reviewable. Exclude generated artifacts and private
+  diagnostics. Pushing and publishing require the user's requested scope.
 
 ## Required validation
 

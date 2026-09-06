@@ -296,6 +296,12 @@ protocol TouchBarBridging: AnyObject {
 
 extension TouchBarBridging {
     func resetAndRepresent(_ touchBar: NSTouchBar) -> Bool { false }
+
+    /// Call only during an explicit user action. Never defer recovery: system
+    /// dismissal has no reliable callback, and the user may already have closed it.
+    func presentOnUserRequest(_ touchBar: NSTouchBar) -> Bool {
+        activatePersistentAccess(touchBar) || resetAndRepresent(touchBar)
+    }
 }
 
 @MainActor
@@ -344,7 +350,6 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
             Self.approvalQuestion, Self.approvalApprove, Self.approvalReject,
             Self.approvalChanges, .otherItemsProxy,
         ]
-        _ = bridge.present(touchBar)
     }
 
     func setApprovalSending(_ sending: Bool, result: String? = nil) {
@@ -357,7 +362,6 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
         approvalAction = nil
         approvalButtons.removeAll()
         updateMetricComposition()
-        _ = bridge.present(touchBar)
     }
 
     override convenience init() {
@@ -399,16 +403,6 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
         )
     }
 
-    func activatePersistentAccess() {
-        // App activation is not user consent to reopen a system-modal bar that the
-        // user has collapsed. `present` is idempotent for the retained bar, while
-        // explicit tray restore and recovery paths can still force representation.
-        recordPresentation(
-            bridge.present(touchBar),
-            failureMessage: "RehireBar activation is unavailable on this Mac or macOS version."
-        )
-    }
-
     func show(_ snapshot: UsageSnapshot) {
         showStatus(.init(usage: snapshot, session: nil))
     }
@@ -426,7 +420,6 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
         }
         updateMetricComposition()
         refreshViews()
-        present()
     }
 
     func showUnavailable() {
@@ -435,7 +428,6 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
         activeSessionID = nil
         updateMetricComposition()
         refreshViews()
-        present()
     }
 
     func markRenderedStatusStale() {
@@ -446,32 +438,13 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
 
     func represent() -> Bool {
         recordPresentation(
-            bridge.activatePersistentAccess(touchBar),
+            bridge.presentOnUserRequest(touchBar),
             failureMessage: "RehireBar restoration is unavailable on this Mac or macOS version."
         )
     }
 
-    func resetCompositionAndRepresent() -> Bool {
-        let succeeded = bridge.resetAndRepresent(touchBar)
-        recordPresentation(
-            succeeded,
-            failureMessage: "RehireBar reset is unavailable on this Mac or macOS version."
-        )
-        if succeeded {
-            updateMetricComposition()
-        }
-        return succeeded
-    }
-
     func hide() {
         bridge.dismissOwnTouchBar()
-    }
-
-    private func present() {
-        recordPresentation(
-            bridge.present(touchBar),
-            failureMessage: "RehireBar presentation is unavailable on this Mac or macOS version."
-        )
     }
 
     @discardableResult

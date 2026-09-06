@@ -56,6 +56,12 @@ For release packaging, `bash scripts/build-release.sh` builds and verifies separ
 Apple silicon and Intel ZIPs plus `SHA256SUMS` under `release/`. Verification checks
 each Mach-O architecture so the filename cannot silently mislabel a build.
 
+CI retains the release archives from each macOS runner and executes that runner's
+native archive through `doctor --json`. For publication, select the arm64 ZIP from
+the Apple silicon runner and the x86_64 ZIP from the Intel runner at the verified
+source revision, then compute `SHA256SUMS` for that selected pair. Verify and run
+the downloaded archives again before publishing them.
+
 To build, verify, and run the release on this Mac:
 
 ```bash

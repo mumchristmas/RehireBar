@@ -11,6 +11,7 @@
 # Never commit local evidence or machine data.
 /artifacts/
 /.codex/
+/PUBLICATION-MANIFEST.md
 *.log
 *.sqlite
 *.sqlite-wal

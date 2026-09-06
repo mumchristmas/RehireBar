@@ -6,6 +6,7 @@
 /release/*.app
 /release/*.zip
 /release/SHA256SUMS*
+/release/appcast-*.xml
 /release/test/
 
 # Never commit local evidence or machine data.

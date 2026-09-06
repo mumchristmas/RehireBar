@@ -109,7 +109,8 @@ final class RehireBarApplication {
             onSortModeChange: { [weak coordinator] mode in
                 defaults.set(mode.rawValue, forKey: SessionSortMode.preferenceKey)
                 coordinator?.refreshTaskOrder()
-            }
+            },
+            updater: SparkleApplicationUpdater()
         )
         return RehireBarApplication(
             coordinator: coordinator,

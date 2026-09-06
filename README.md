@@ -29,7 +29,7 @@ RehireBar is a native MacBook Pro Touch Bar monitor for local and remote AI task
 
 Requires **macOS 15+** and a **physical Touch Bar**. The Codex integration needs Codex CLI; task navigation needs Codex Desktop. See [tested clients and support boundaries](docs/COMPATIBILITY.md).
 
-Download **[Apple Silicon](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-arm64.zip)** or **[Intel](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-x86_64.zip)** from the [latest release](https://github.com/mumchristmas/RehireBar/releases/latest), verify its checksum, and move the extracted app to Applications.
+Download **[Apple Silicon](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.4/RehireBar-0.5.4-macos-arm64.zip)** or **[Intel](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.4/RehireBar-0.5.4-macos-x86_64.zip)** from the [latest release](https://github.com/mumchristmas/RehireBar/releases/latest), verify its checksum, and move the extracted app to Applications.
 
 The app is ad-hoc signed and not notarized. See [Installation](docs/INSTALLATION.md) for first launch. Xcode is only needed to build from source:
 

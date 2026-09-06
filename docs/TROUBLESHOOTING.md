@@ -1,5 +1,16 @@
 # Troubleshooting
 
+## Check for Updates cannot find the update feed
+
+Confirm network access to the release source and try the menu action again. A
+new updater-enabled release must publish both `appcast-arm64.xml` and
+`appcast-x86_64.xml` as release assets. Older releases have no update feed. The app
+does not interpret a failed request as proof that the installed version is current.
+
+If an update fails signature validation, keep the current application and report
+the failure. Do not disable signature checks. See [Application updates](UPDATES.md)
+for publisher validation and the one-time manual upgrade from older versions.
+
 ## Check this Mac's environment
 
 In RehireBar 0.5.3 and later, run the installed executable with `doctor --json`:

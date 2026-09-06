@@ -29,7 +29,7 @@ RehireBar 原生运行在 macOS 上，把本地与远程 AI 任务、模型、�
 
 需要 **macOS 15+** 和 **实体 Touch Bar**。Codex 集成需要 Codex CLI，任务跳转需要 Codex Desktop。具体客户端版本与支持范围见[兼容性说明](docs/COMPATIBILITY.md)。
 
-从[最新发布](https://github.com/mumchristmas/RehireBar/releases/latest)下载 **[Apple Silicon 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-arm64.zip)**或 **[Intel 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-x86_64.zip)**，核对校验值，将解压出的应用移入“应用程序”。
+从[最新发布](https://github.com/mumchristmas/RehireBar/releases/latest)下载 **[Apple Silicon 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.4/RehireBar-0.5.4-macos-arm64.zip)**或 **[Intel 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.4/RehireBar-0.5.4-macos-x86_64.zip)**，核对校验值，将解压出的应用移入“应用程序”。
 
 安装包使用 ad-hoc 签名，尚未公证。首次启动见[安装指南](docs/INSTALLATION.md)。仅从源码构建时需要带 Swift 6 的 Xcode：
 

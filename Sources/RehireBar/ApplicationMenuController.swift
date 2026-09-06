@@ -9,12 +9,14 @@ protocol ApplicationMenuManaging: AnyObject {
 /// Gives the accessory application an explicit, discoverable lifecycle without
 /// taking space from the Touch Bar itself.
 @MainActor
-final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenuDelegate {
+final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenuDelegate, NSMenuItemValidation {
     private let statusBar: NSStatusBar
     private let onShow: @MainActor () -> Void
     private let onQuit: @MainActor () -> Void
     private let sortMode: @MainActor () -> SessionSortMode
     private let onSortModeChange: @MainActor (SessionSortMode) -> Void
+    private let version: ApplicationVersion
+    private let updater: any ApplicationUpdating
     private var statusItem: NSStatusItem?
 
     init(
@@ -22,17 +24,22 @@ final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenu
         onShow: @escaping @MainActor () -> Void,
         onQuit: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) },
         sortMode: @escaping @MainActor () -> SessionSortMode = { .runningFirst },
-        onSortModeChange: @escaping @MainActor (SessionSortMode) -> Void = { _ in }
+        onSortModeChange: @escaping @MainActor (SessionSortMode) -> Void = { _ in },
+        version: ApplicationVersion = .current,
+        updater: any ApplicationUpdating = NoopApplicationUpdater()
     ) {
         self.statusBar = statusBar
         self.onShow = onShow
         self.onQuit = onQuit
         self.sortMode = sortMode
         self.onSortModeChange = onSortModeChange
+        self.version = version
+        self.updater = updater
     }
 
     func start() {
         guard statusItem == nil else { return }
+        updater.start()
         let item = statusBar.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
             let image = StatusSymbol.makeImage()
@@ -48,6 +55,14 @@ final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenu
 
     static func makeMenu(target: ApplicationMenuController) -> NSMenu {
         let menu = NSMenu(title: "RehireBar")
+        let versionItem = NSMenuItem(title: target.version.displayText, action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
+        menu.addItem(
+            withTitle: "Check for Updates…",
+            action: #selector(checkForUpdates), keyEquivalent: ""
+        )
+        menu.addItem(.separator())
         menu.addItem(
             withTitle: "Show Touch Bar",
             action: #selector(showTouchBar),
@@ -89,6 +104,15 @@ final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenu
 
     @objc private func showTouchBar() { onShow() }
     @objc private func quit() { onQuit() }
+    @objc private func checkForUpdates() {
+        guard updater.canCheckForUpdates else { return }
+        updater.checkForUpdates()
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(checkForUpdates) { return updater.canCheckForUpdates }
+        return menuItem.action != nil
+    }
 
     func menuWillOpen(_ menu: NSMenu) {
         for item in menu.items {

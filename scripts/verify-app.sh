@@ -21,7 +21,7 @@ STAGED_APP="$STAGE_ROOT/RehireBar.app"
 COPYFILE_DISABLE=1 ditto --norsrc "$SOURCE_APP" "$STAGED_APP"
 xattr -cr "$STAGED_APP"
 codesign --verify --deep --strict --verbose=2 "$STAGED_APP"
-for directory in "$STAGED_APP" "$STAGED_APP/Contents" "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources"; do
+for directory in "$STAGED_APP" "$STAGED_APP/Contents" "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources" "$STAGED_APP/Contents/Frameworks"; do
     if [[ "$(stat -f '%Lp' "$directory")" != "755" ]]; then
         echo "App directory has non-distributable permissions: $directory" >&2
         exit 1
@@ -57,11 +57,46 @@ if [[ ! -f "$STAGED_APP/Contents/Resources/ModelDisplay.json" ]]; then
     echo "Bundled model display configuration is missing" >&2
     exit 1
 fi
-for notice in LICENSE.txt NOTICE.md; do
+for notice in LICENSE.txt NOTICE.md Sparkle-LICENSE.txt; do
     if [[ ! -s "$STAGED_APP/Contents/Resources/$notice" ]]; then
         echo "Bundled license or attribution is missing: $notice" >&2
         exit 1
     fi
 done
+
+SPARKLE="$STAGED_APP/Contents/Frameworks/Sparkle.framework"
+if [[ ! -L "$SPARKLE/Versions/Current" || ! -x "$SPARKLE/Sparkle" ]]; then
+    echo "Sparkle framework or its required symlinks are missing" >&2
+    exit 1
+fi
+for architecture in $ACTUAL_ARCH; do
+    lipo "$SPARKLE/Sparkle" -verify_arch "$architecture"
+done
+otool -L "$EXECUTABLE" | grep -Fq '@rpath/Sparkle.framework/' || {
+    echo "Executable does not link the bundled updater framework" >&2; exit 1;
+}
+python3 - "$STAGED_APP/Contents/Info.plist" "$ACTUAL_ARCH" <<'PY'
+import base64, plistlib, stat, sys
+from pathlib import Path
+from urllib.parse import urlparse
+app = Path(sys.argv[1]).parent.parent
+for entry in [app, *app.rglob('*')]:
+    if entry.is_symlink():
+        continue
+    mode = stat.S_IMODE(entry.stat().st_mode)
+    expected = 0o755 if entry.is_dir() or mode & 0o111 else 0o644
+    assert mode == expected, (str(entry.relative_to(app)), oct(mode))
+with open(sys.argv[1], 'rb') as source:
+    info = plistlib.load(source)
+url = urlparse(info['SUFeedURL'])
+assert url.scheme == 'https' and url.hostname and not url.username and not url.password
+assert url.path.endswith('/appcast-' + sys.argv[2] + '.xml')
+assert len(base64.b64decode(info['SUPublicEDKey'], validate=True)) == 32
+for setting in ('SUEnableAutomaticChecks', 'SUAutomaticallyUpdate', 'SUAllowsAutomaticUpdates', 'SUEnableSystemProfiling'):
+    assert info.get(setting) is False, setting
+for setting in ('SURequireSignedFeed', 'SUVerifyUpdateBeforeExtraction'):
+    assert info.get(setting) is True, setting
+assert info.get('SUSignedFeedFailureExpirationInterval') == 0
+PY
 
 echo "Verified clean staged copy ($ACTUAL_ARCH): $STAGED_APP"

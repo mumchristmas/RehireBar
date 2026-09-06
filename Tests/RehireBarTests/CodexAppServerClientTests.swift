@@ -112,7 +112,7 @@ final class CodexAppServerClientTests: XCTestCase {
     func testUsesExactJSONRPCMessages() {
         XCTAssertEqual(
             String(decoding: CodexAppServerClient.initializeRequest, as: UTF8.self),
-            #"{"id":1,"method":"initialize","params":{"clientInfo":{"name":"rehirebar","version":"0.5.0"}}}"# + "\n"
+            #"{"id":1,"method":"initialize","params":{"clientInfo":{"name":"rehirebar","version":"development"}}}"# + "\n"
         )
         XCTAssertEqual(
             String(decoding: CodexAppServerClient.initializedNotification, as: UTF8.self),

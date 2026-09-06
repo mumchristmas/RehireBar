@@ -49,6 +49,7 @@ This rule is especially important for remote tasks: catalog activity can mean ti
 | Open Agent adapter | `AgentStatusDirectoryProvider` | Load independent JSON providers and isolate malformed documents. |
 | State resolution | `CurrentSessionProvider`, `LiveSessionStatusProvider`, `SessionMonitoringOrder` | Merge evidence with freshness and host-recovery precedence; order tasks independently of focus. |
 | Diagnostics | `DoctorCommand`, `DoctorReport`, `CodexVersionProbe` | Read versions, source presence, and cache ages without starting the app lifecycle or asserting untested runtime behavior. |
+| Application updates | `ApplicationVersion`, `SparkleApplicationUpdater` | Display bundle-derived versions and delegate verified installation/relaunch to Sparkle after a user action. |
 | Presentation | `TouchBarPresenter`, `TouchBarGeometry`, `SystemModalRuntime` | Lay out available facts without provider knowledge. |
 | Explicit actions | `WorkspaceTaskOpener`, `ConversationApprovalCoordinator` | Open only tapped task URLs and deliver only registered decisions. |
 

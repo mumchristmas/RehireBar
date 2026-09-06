@@ -1,6 +1,15 @@
 import AppKit
 import Dispatch
 
+if CommandLine.arguments.dropFirst().first == "--version" {
+    guard CommandLine.arguments.count == 2 else {
+        fputs("usage: RehireBar --version\n", stderr)
+        exit(2)
+    }
+    print(ApplicationVersion.current.displayText)
+    exit(0)
+}
+
 private func handleThreadSnapshotRequest(_ arguments: [String]) -> Bool {
     guard arguments.first == "thread-snapshot" else { return false }
     let values = Array(arguments.dropFirst())

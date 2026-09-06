@@ -1,5 +1,16 @@
 import Foundation
 
+enum SessionSortMode: String, CaseIterable, Sendable {
+    case runningFirst = "running-first"
+    case waitingFirst = "waiting-first"
+
+    static let preferenceKey = "taskSortMode"
+
+    init(preference: String?) {
+        self = preference.flatMap(Self.init(rawValue:)) ?? .runningFirst
+    }
+}
+
 enum SessionExecutionState: String, Equatable, Sendable {
     case working
     case syncing
@@ -8,8 +19,17 @@ enum SessionExecutionState: String, Equatable, Sendable {
     case idle
     case unknown
 
-    var monitoringPriority: Int {
-        switch self {
+    func monitoringPriority(for mode: SessionSortMode) -> Int {
+        if mode == .waitingFirst {
+            switch self {
+            case .waiting: return 0
+            case .error: return 1
+            case .working: return 2
+            case .syncing: return 3
+            case .idle, .unknown: return 4
+            }
+        }
+        return switch self {
         case .working: 0
         case .waiting: 1
         case .error: 2
@@ -39,7 +59,9 @@ enum SessionMonitoringOrder {
         var lastActivityAt: Date?
     }
 
-    static func sorted(_ sessions: [CurrentSessionSnapshot]) -> [CurrentSessionSnapshot] {
+    static func sorted(
+        _ sessions: [CurrentSessionSnapshot], mode: SessionSortMode = .runningFirst
+    ) -> [CurrentSessionSnapshot] {
         var projects: [ProjectKey: ProjectActivity] = [:]
         for session in sessions {
             guard let key = projectKey(for: session) else { continue }
@@ -55,8 +77,10 @@ enum SessionMonitoringOrder {
                                    lastActivityAt: session.lastActivityAt)
         }
         return sessions.sorted { lhs, rhs in
-            if lhs.executionState.monitoringPriority != rhs.executionState.monitoringPriority {
-                return lhs.executionState.monitoringPriority < rhs.executionState.monitoringPriority
+            let leftPriority = lhs.executionState.monitoringPriority(for: mode)
+            let rightPriority = rhs.executionState.monitoringPriority(for: mode)
+            if leftPriority != rightPriority {
+                return leftPriority < rightPriority
             }
             let leftProject = activity(for: lhs)
             let rightProject = activity(for: rhs)

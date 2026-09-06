@@ -21,13 +21,19 @@ This directory is the complete and only GitHub publication boundary for RehireBa
 
 ## Publication rule
 
-Treat this directory as the future repository root. Do not publish its parent workspace. Binary ZIP files under `release/` are GitHub Release assets and are intentionally ignored by Git; upload them separately from this same public boundary.
+Treat this directory as the repository root. Do not publish its parent workspace. Binary ZIP files under `release/` are GitHub Release assets and are intentionally ignored by Git; upload them separately from this same public boundary.
 
-The first public release is 0.5.2. Publish the sanitized source snapshot as one initial commit and upload only the matching release assets.
+The first public release was 0.5.2. Subsequent source changes and release assets
+should retain their own reviewed history and matching version/build information.
 
 ## Suggested GitHub metadata
 
 - Repository name: `RehireBar`
 - Repository: `https://github.com/mumchristmas/RehireBar`
-- Description: `Open-source Touch Bar status rail for Codex and other AI agents on MacBook Pro: local and remote tasks, context, model, quota, sync, and approvals.`
-- Topics: `touch-bar`, `codex`, `ai-agents`, `macos`, `swift`, `macbook-pro`, `developer-tools`, `agent-status`
+- Description: `Your Touch Bar is back on the payroll. Native Codex task monitoring for MacBook Pro; other agents connect through a shared status interface.`
+- Topics: `touch-bar`, `touchbar`, `codex`, `codex-cli`, `ai-agents`, `macos`, `swift`, `macbook-pro`, `developer-tools`, `agent-status`
+
+These are suggested publishing metadata, not a statement that the GitHub settings
+have already changed. The spelling variants improve query coverage; no search-rank
+gain is guaranteed. Add agent-specific topics only when a corresponding usable
+integration exists.

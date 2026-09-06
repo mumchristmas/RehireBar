@@ -89,6 +89,7 @@ final class AppCoordinator {
     private let wakeMonitor: any WakeMonitoring
     private let logger: @MainActor (String) -> Void
     private let now: @MainActor () -> Date
+    private let sortMode: @MainActor () -> SessionSortMode
 
     private var refreshCancellation: (any RefreshCancellation)?
     private var liveRefreshCancellation: (any RefreshCancellation)?
@@ -121,7 +122,8 @@ final class AppCoordinator {
         relauncher: any ApplicationRelaunching = NoopApplicationRelauncher(),
         wakeMonitor: any WakeMonitoring = NoopWakeMonitor(),
         logger: @escaping @MainActor (String) -> Void = { _ in },
-        now: @escaping @MainActor () -> Date = { .now }
+        now: @escaping @MainActor () -> Date = { .now },
+        sortMode: @escaping @MainActor () -> SessionSortMode = { .runningFirst }
     ) {
         self.activityMonitor = activityMonitor
         self.fetcher = statusFetcher
@@ -137,6 +139,7 @@ final class AppCoordinator {
         self.wakeMonitor = wakeMonitor
         self.logger = logger
         self.now = now
+        self.sortMode = sortMode
         if let binding = presenter as? any ManualRefreshBinding {
             binding.onManualRefresh = { [weak self] in
                 self?.refreshNow(preserveRenderedStatusOnFailure: true)
@@ -501,7 +504,7 @@ final class AppCoordinator {
             usage: fresh.usage ?? previous?.usage,
             session: replacesSessions ? fresh.session : previous?.session,
             sessions: replacesSessions ? fresh.sessions : previous?.sessions
-        )
+        ).orderingSessions(by: sortMode())
         lastStatus = status
         statusPublisher.publish(status)
         presenter.showStatus(status)
@@ -515,11 +518,18 @@ final class AppCoordinator {
             session: lastStatus.session?.expiringEvidence(at: referenceDate),
             sessions: lastStatus.includesSessions
                 ? lastStatus.sessions.map { $0.expiringEvidence(at: referenceDate) } : nil
-        )
+        ).orderingSessions(by: sortMode())
         guard status != lastStatus else { return }
         self.lastStatus = status
         statusPublisher.publish(status)
         presenter.showStatus(status)
+    }
+
+    /// A deliberate order change updates retained facts immediately. It neither
+    /// navigates a task nor forces a collapsed Touch Bar to reopen.
+    func refreshTaskOrder() {
+        guard hasStarted else { return }
+        expireRetainedEvidence()
     }
 
     private func report(_ error: Error, source: String) {

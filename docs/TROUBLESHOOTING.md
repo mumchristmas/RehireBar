@@ -1,5 +1,20 @@
 # Troubleshooting
 
+## Check this Mac's environment
+
+In RehireBar 0.5.3 and later, run the installed executable with `doctor --json`:
+
+```bash
+'/Applications/RehireBar.app/Contents/MacOS/RehireBar' doctor --json
+```
+
+This reports desktop and CLI versions, physical Touch Bar detection, source
+presence, registered navigation, and cache freshness without opening a task or
+sending an approval. It does not certify the live IPC protocol. See
+[Diagnostics](DIAGNOSTICS.md) for fields and [Compatibility](COMPATIBILITY.md) for
+the acceptance matrix. For release-directory testing, use the exact executable
+path recorded by `scripts/test-release.sh`.
+
 ## The Touch Bar is blank after sleep
 
 1. Tap the persistent status-strip icon in the Control Strip.

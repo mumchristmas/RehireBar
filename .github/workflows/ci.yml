@@ -31,5 +31,23 @@ jobs:
         run: |
           bash scripts/build-app.sh
           bash scripts/verify-app.sh
+      - name: Check packaged doctor command
+        run: |
+          python3 - <<'PY'
+          import json, plistlib, subprocess
+          from pathlib import Path
+          app = Path("dist/RehireBar.app/Contents")
+          metadata = plistlib.loads((app / "Info.plist").read_bytes())
+          result = subprocess.run(
+              [str(app / "MacOS/RehireBar"), "doctor", "--json"],
+              capture_output=True, check=True, timeout=10,
+          )
+          report = json.loads(result.stdout)
+          assert report["schemaVersion"] == 1
+          assert report["app"]["version"] == metadata["CFBundleShortVersionString"]
+          assert report["app"]["build"] == metadata["CFBundleVersion"]
+          assert report["runtimeProbe"] == "not-run"
+          assert report["navigation"]["taskOpening"] == "not-tested"
+          PY
       - name: Package Apple silicon and Intel releases
         run: bash scripts/build-release.sh

@@ -2,12 +2,12 @@
 
 Files in this directory are staged for GitHub Releases, not for Git history.
 
-For `0.5.2`, upload:
+For `0.5.3`, upload:
 
-- `RehireBar-0.5.2-macos-arm64.zip` — Apple silicon
-- `RehireBar-0.5.2-macos-x86_64.zip` — Intel
+- `RehireBar-0.5.3-macos-arm64.zip` — Apple silicon
+- `RehireBar-0.5.3-macos-x86_64.zip` — Intel
 - `SHA256SUMS`
-- `RELEASE-NOTES-0.5.2.md`
+- `RELEASE-NOTES-0.5.3.md`
 
 The ZIP is built from this public directory and contains the complete ad-hoc-signed `RehireBar.app`. It is not notarized. Users who prefer source can reproduce the same bundle with `bash scripts/build-app.sh`.
 

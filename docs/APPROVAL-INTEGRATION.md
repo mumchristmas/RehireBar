@@ -2,6 +2,11 @@
 
 Approval buttons are an explicit integration surface. RehireBar never treats ordinary prose as authority to act.
 
+These buttons do not automatically intercept every Codex permission request.
+The source agent must explicitly register a question using the command below.
+Delivery remains conditional on the installed desktop version; see
+[Compatibility](COMPATIBILITY.md).
+
 ## Register a decision gate
 
 Call the installed executable with a valid Codex thread UUID and a short question:
@@ -9,7 +14,7 @@ Call the installed executable with a valid Codex thread UUID and a short questio
 ```bash
 APP='/Applications/RehireBar.app/Contents/MacOS/RehireBar'
 "$APP" approval-request \
-  --thread-id '10000000-0000-4000-8000-000000000002' \
+  --thread-id '019f56ad-6af2-7163-8771-cf8c5169e9d0' \
   --question 'Approve this design and continue?'
 ```
 

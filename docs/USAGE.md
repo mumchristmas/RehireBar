@@ -6,7 +6,9 @@ RehireBar runs in the background and exposes one persistent status-strip icon in
 
 Tap the status-strip Control Strip icon to present the full status bar. Use the close control on the left to collapse it back to the native Control Strip. Background data refreshes, the 15-second health check, and ordinary Codex foreground activation do not reopen a collapsed bar. The app preserves native brightness, volume, and other macOS controls.
 
-The menu-bar app icon provides two deliberate lifecycle actions: **Show Touch Bar** restores the full bar, and **Quit RehireBar** stops the helper. Quitting removes the app-owned Control Strip item until the app is launched again.
+The menu-bar app icon provides **Show Touch Bar** to restore the full bar,
+**Task order** to choose monitoring priority, and **Quit RehireBar** to stop the
+helper. Quitting removes the app-owned Control Strip item until the app is launched again.
 
 ## Read the status groups
 
@@ -36,11 +38,19 @@ If nothing changes, the source may have returned the same value or no eligible q
 ## Monitor tasks independently
 
 Tasks in the same project have separate cards, states, models, and context readings.
-Running tasks appear first, followed by tasks waiting for input, errors,
+By default, running tasks appear first, followed by tasks waiting for input, errors,
 synchronizing tasks, and idle/unknown tasks. Within each state, active projects
 and recently active projects come first, then the most recently active task.
 Task identity breaks ties without merging cards.
 Swipe horizontally to see the remaining tasks.
+
+In RehireBar 0.5.3 and later, choose **Task order → Waiting first** from the menu-bar
+icon to show `WAIT`, then `ERR`, then `RUN`, `SYNC`, and idle/unknown tasks. This
+keeps a waiting task on the first screen even when three other tasks are running.
+Project and task recency still determine order within a state. The preference is
+saved and applies immediately without changing task state, opening a task, or
+reopening a collapsed Touch Bar. Select **Running first** to restore the default.
+Expired waiting evidence becomes unknown and loses its waiting priority.
 
 Switching to an inactive task in Codex can refresh that task's metadata, but does
 not replace a running task's card or scroll the monitoring viewport to the focused
@@ -66,6 +76,10 @@ Startup is progressive: a minimal local cache is painted first, the focused task
 SSH-host tasks are covered by the normal regression suite. Device-paired Remote Control tasks use the same composite identity and snapshot contract, but remain conditionally supported until a real second-device acceptance run has verified idle, run, wait, compaction, disconnect, and recovery behavior for the installed Desktop version.
 
 This fallback is display-only for live mutations. It does not edit `config.toml` or claim to change an already-running CLI process. Opening a task requires Codex Desktop's registered URL handler, and approval delivery requires a matching confirmation from Codex Desktop.
+
+See [Compatibility](COMPATIBILITY.md) for the tested desktop host and the limits of
+CLI-only, external-publisher, Intel, and paired-device support. The optional
+[doctor command](DIAGNOSTICS.md) reports local readiness without opening tasks.
 
 ## Answer an approval request
 

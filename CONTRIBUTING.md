@@ -39,6 +39,13 @@ Model labels are defined by [the model display interface](docs/integrations/MODE
 
 Add user-visible changes to the appropriate category under `Unreleased` in `CHANGELOG.md`.
 
+When testing a new desktop or macOS version, record the exact versions and separate
+observed behavior from readiness checks in [Compatibility](docs/COMPATIBILITY.md).
+Use [the doctor command](docs/DIAGNOSTICS.md) for a report without private task
+metadata. Its successful exit means the report was generated, not that every
+integration passed. Verify task navigation and approval delivery through explicit
+user actions; a socket or registered URL handler is insufficient evidence.
+
 Generated app bundles belong in `dist/`. Raw screenshots, logs, and rollback bundles are local artifacts and must not be committed; publish only minimal, sanitized evidence under `docs/assets/`.
 
 The packaging script remaps source paths and strips debug-map records from its binary copy before signing. Local SwiftPM build products retain their debugging information. Bundle verification rejects embedded home-directory paths.

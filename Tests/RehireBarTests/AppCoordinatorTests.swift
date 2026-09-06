@@ -5,6 +5,46 @@ import XCTest
 
 @MainActor
 final class AppCoordinatorTests: XCTestCase {
+    func testOrderPreferenceReordersRetainedTasksAndDiagnosticsWithoutRestoringBar() async {
+        let suiteName = "RehireBarTests.SortMode.\(UUID().uuidString)"
+        let preferences = UserDefaults(suiteName: suiteName)!
+        defer { preferences.removePersistentDomain(forName: suiteName) }
+        let now = Date.now
+        let tasks = ["run-a", "run-b", "run-c", "wait"].map { id in
+            CurrentSessionSnapshot(
+                sessionID: id, threadID: id, usedTokens: 0, contextWindow: 0,
+                model: nil, effort: nil, observedAt: now,
+                executionState: id == "wait" ? .waiting : .working
+            )
+        }
+        let presenter = FakeTouchBarStatusPresenter()
+        let publisher = FakeStatusPublisher()
+        let coordinator = AppCoordinator(
+            activityMonitor: FakeActivityMonitor(),
+            statusFetcher: FakeStatusFetcher(results: [.init(usage: nil, session: tasks.first, sessions: tasks)]),
+            presenter: presenter, scheduler: FakeRefreshScheduler(), statusPublisher: publisher,
+            now: { now },
+            sortMode: { SessionSortMode(preference: preferences.string(forKey: SessionSortMode.preferenceKey)) }
+        )
+        coordinator.start()
+        await waitUntil { presenter.statuses.count == 1 }
+        let restoreCount = presenter.representCount
+        XCTAssertEqual(presenter.statuses.last?.sessions.first?.threadID, "run-a")
+
+        preferences.set(SessionSortMode.waitingFirst.rawValue, forKey: SessionSortMode.preferenceKey)
+        coordinator.refreshTaskOrder()
+
+        XCTAssertEqual(presenter.statuses.last?.sessions.first?.threadID, "wait")
+        XCTAssertEqual(presenter.statuses.last?.sessions.count, 4)
+        XCTAssertEqual(presenter.statuses.last?.session?.threadID, "run-a")
+        XCTAssertEqual(publisher.statuses.last, presenter.statuses.last)
+        XCTAssertEqual(presenter.representCount, restoreCount)
+        preferences.set(SessionSortMode.runningFirst.rawValue, forKey: SessionSortMode.preferenceKey)
+        coordinator.refreshTaskOrder()
+        XCTAssertEqual(presenter.statuses.last?.sessions.first?.threadID, "run-a")
+        coordinator.stop()
+    }
+
     func testEmptyTaskUpdateRemovesCardsButKeepsQuota() async {
         let task = CurrentSessionSnapshot(
             sessionID: "removed-task", usedTokens: 0, contextWindow: 0,
@@ -177,10 +217,10 @@ final class AppCoordinatorTests: XCTestCase {
         XCTAssertEqual(presenter.statuses.first?.sessions.map(\.sessionID), ["focused"])
         XCTAssertNil(presenter.statuses.first?.usage)
         XCTAssertTrue(presenter.statuses.dropFirst().allSatisfy {
-            $0.sessions.first?.sessionID == "focused"
+            $0.sessions.contains { $0.sessionID == "focused" }
         })
         XCTAssertEqual(presenter.statuses.last?.usage, usage)
-        XCTAssertEqual(presenter.statuses.last?.sessions.map(\.sessionID), ["focused", "background"])
+        XCTAssertEqual(presenter.statuses.last?.sessions.map(\.sessionID), ["background", "focused"])
         coordinator.stop()
     }
 

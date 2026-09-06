@@ -14,15 +14,19 @@ available facts.
 - `Sources/RehireBar/` owns collection, state resolution, AppKit, and lifecycle.
 - Provider identity is always `(providerID, scopeID, taskID)`. Never key a task by
   title, project, or task ID alone.
-- Monitor tasks independently of foreground focus. Keep running tasks first,
-  then waiting, error, syncing, and idle/unknown tasks. Within a state, prioritize
-  active/recent projects and recent task activity; identity only breaks ties.
+- Monitor tasks independently of foreground focus. Default to running tasks first,
+  then waiting, error, syncing, and idle/unknown tasks. The optional waiting-first
+  preference elevates waiting and error tasks ahead of running tasks. Resolve this
+  order in the coordinator before publishing or presenting. Within a state,
+  prioritize active/recent projects and recent activity; identity only breaks ties.
 - Keep `lastActivityAt` separate from `observedAt`. Polling, heartbeats, and focus
   changes must not manufacture task activity or replace another task's state.
 - Project identity scopes ordering metadata only. Never collapse a project's tasks
   into one card, or group projects by display name alone.
 - Unknown data stays absent. Never manufacture token counts, model names, runtime
   states, timestamps, or remote labels.
+- Diagnostic readiness is not runtime acceptance. A registered URL handler or an
+  existing IPC socket does not prove that a task opens or a reply is delivered.
 - Active state claims expire when their source stops publishing. Prefer `unknown`
   over a stale `working`, `syncing`, or `waiting` state.
 - A task URL is opened only after the user taps that task card.

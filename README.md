@@ -6,7 +6,7 @@
 
 **Your Touch Bar is back on the payroll.**
 
-RehireBar shows local and remote AI tasks, model, context, and quota on your MacBook Pro's Touch Bar. Codex is supported out of the box.
+RehireBar is a native MacBook Pro Touch Bar monitor for local and remote AI tasks, model, context, and quota. Codex is built in; other agents connect through a status publisher.
 
 [简体中文](README.zh-CN.md) · [Docs](docs/README.md)
 
@@ -21,9 +21,9 @@ RehireBar shows local and remote AI tasks, model, context, and quota on your Mac
 
 ## Install
 
-Requires **macOS 15+** and a **physical Touch Bar**. The Codex integration needs Codex CLI; task navigation needs Codex Desktop.
+Requires **macOS 15+** and a **physical Touch Bar**. The Codex integration needs Codex CLI; task navigation needs Codex Desktop. See [tested clients and support boundaries](docs/COMPATIBILITY.md).
 
-Download **[Apple Silicon](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.2/RehireBar-0.5.2-macos-arm64.zip)** or **[Intel](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.2/RehireBar-0.5.2-macos-x86_64.zip)** from the [latest release](https://github.com/mumchristmas/RehireBar/releases/latest), verify its checksum, and move the extracted app to Applications.
+Download **[Apple Silicon](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-arm64.zip)** or **[Intel](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-x86_64.zip)** from the [latest release](https://github.com/mumchristmas/RehireBar/releases/latest), verify its checksum, and move the extracted app to Applications.
 
 The app is ad-hoc signed and not notarized. See [Installation](docs/INSTALLATION.md) for first launch. Xcode is only needed to build from source:
 
@@ -33,6 +33,8 @@ open 'dist/RehireBar.app'
 ```
 
 ## Extend RehireBar
+
+Give this repository to the coding agent you already use and let it help connect your tools and build your own RehireBar. The interface docs, examples, and build scripts are already included.
 
 To connect another agent, build a status publisher that atomically writes to `~/Library/Application Support/RehireBar/agents/<provider>.json`. The existing UI reads the shared contract.
 

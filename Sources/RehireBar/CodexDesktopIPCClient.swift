@@ -288,19 +288,27 @@ final class CodexDesktopIPCClient: DesktopThreadSnapshotFetching, Sendable {
     }
 
     private static func connectToRouter(timeoutSeconds: Int = 15) throws -> Int32 {
-        let primary = FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: ".codex/ipc/ipc.sock")
-            .path
-        let legacy = FileManager.default.temporaryDirectory
-            .appending(path: "codex-ipc")
-            .appending(path: "ipc-\(getuid()).sock")
-            .path
         var lastError: Error?
-        for socketPath in [primary, legacy] {
+        for socketPath in routerSocketPaths() {
             do { return try connectToRouter(at: socketPath, timeoutSeconds: timeoutSeconds) }
             catch { lastError = error }
         }
         throw lastError ?? CocoaError(.fileNoSuchFile)
+    }
+
+    static func routerSocketPaths(
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        temporaryDirectory: URL = FileManager.default.temporaryDirectory,
+        userID: uid_t = getuid()
+    ) -> [String] {
+        let primary = homeDirectory
+            .appending(path: ".codex/ipc/ipc.sock")
+            .path
+        let legacy = temporaryDirectory
+            .appending(path: "codex-ipc")
+            .appending(path: "ipc-\(userID).sock")
+            .path
+        return [primary, legacy]
     }
 
     private static func connectToRouter(at socketPath: String, timeoutSeconds: Int) throws -> Int32 {

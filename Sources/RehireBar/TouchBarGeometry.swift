@@ -19,6 +19,10 @@ protocol TouchBarGeometryReading {
 }
 
 final class SystemTouchBarGeometryReader: TouchBarGeometryReading {
+    /// Unlike the layout fallback, this only reports a physical device returned
+    /// by the system. A missing private API also results in "not detected".
+    static var hardwareDetected: Bool { physicalScreenSize() != nil }
+
     private static let frameworkPath =
         "/System/Library/PrivateFrameworks/DFRFoundation.framework/DFRFoundation"
     private let screenSizeProvider: () -> CGSize?

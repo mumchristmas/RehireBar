@@ -9,20 +9,26 @@ protocol ApplicationMenuManaging: AnyObject {
 /// Gives the accessory application an explicit, discoverable lifecycle without
 /// taking space from the Touch Bar itself.
 @MainActor
-final class ApplicationMenuController: NSObject, ApplicationMenuManaging {
+final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenuDelegate {
     private let statusBar: NSStatusBar
     private let onShow: @MainActor () -> Void
     private let onQuit: @MainActor () -> Void
+    private let sortMode: @MainActor () -> SessionSortMode
+    private let onSortModeChange: @MainActor (SessionSortMode) -> Void
     private var statusItem: NSStatusItem?
 
     init(
         statusBar: NSStatusBar = .system,
         onShow: @escaping @MainActor () -> Void,
-        onQuit: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) }
+        onQuit: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) },
+        sortMode: @escaping @MainActor () -> SessionSortMode = { .runningFirst },
+        onSortModeChange: @escaping @MainActor (SessionSortMode) -> Void = { _ in }
     ) {
         self.statusBar = statusBar
         self.onShow = onShow
         self.onQuit = onQuit
+        self.sortMode = sortMode
+        self.onSortModeChange = onSortModeChange
     }
 
     func start() {
@@ -48,12 +54,30 @@ final class ApplicationMenuController: NSObject, ApplicationMenuManaging {
             keyEquivalent: ""
         )
         menu.addItem(.separator())
+        let orderItem = NSMenuItem(title: "Task order", action: nil, keyEquivalent: "")
+        let orderMenu = NSMenu(title: "Task order")
+        orderMenu.delegate = target
+        for mode in SessionSortMode.allCases {
+            let item = NSMenuItem(
+                title: mode == .runningFirst ? "Running first" : "Waiting first",
+                action: #selector(changeTaskOrder(_:)), keyEquivalent: ""
+            )
+            item.representedObject = mode.rawValue
+            item.target = target
+            item.state = target.sortMode() == mode ? .on : .off
+            orderMenu.addItem(item)
+        }
+        orderItem.submenu = orderMenu
+        menu.addItem(orderItem)
+        menu.addItem(.separator())
         menu.addItem(
             withTitle: "Quit RehireBar",
             action: #selector(quit),
             keyEquivalent: "q"
         )
-        menu.items.forEach { $0.target = target }
+        for item in menu.items where !item.isSeparatorItem && item.submenu == nil {
+            item.target = target
+        }
         return menu
     }
 
@@ -65,6 +89,21 @@ final class ApplicationMenuController: NSObject, ApplicationMenuManaging {
 
     @objc private func showTouchBar() { onShow() }
     @objc private func quit() { onQuit() }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        for item in menu.items {
+            guard let value = item.representedObject as? String,
+                  let mode = SessionSortMode(rawValue: value) else { continue }
+            item.state = mode == sortMode() ? .on : .off
+        }
+    }
+
+    @objc private func changeTaskOrder(_ item: NSMenuItem) {
+        guard let value = item.representedObject as? String,
+              let mode = SessionSortMode(rawValue: value) else { return }
+        onSortModeChange(mode)
+        if let menu = item.menu { menuWillOpen(menu) }
+    }
 }
 
 @MainActor

@@ -6,7 +6,7 @@
 
 **Touch Bar 又被叫回来上班了。**
 
-RehireBar 把本地与远程 AI 任务、模型、上下文和额度，放到 MacBook Pro 的 Touch Bar 上。内置支持 Codex。
+RehireBar 原生运行在 macOS 上，把本地与远程 AI 任务、模型、上下文和额度放到 MacBook Pro 的 Touch Bar 上。内置支持 Codex；其他 Agent 通过状态发布器接入。
 
 [English](README.md) · [文档](docs/README.md)
 
@@ -21,9 +21,9 @@ RehireBar 把本地与远程 AI 任务、模型、上下文和额度，放到 Ma
 
 ## 安装
 
-需要 **macOS 15+** 和 **实体 Touch Bar**。Codex 集成需要 Codex CLI，任务跳转需要 Codex Desktop。
+需要 **macOS 15+** 和 **实体 Touch Bar**。Codex 集成需要 Codex CLI，任务跳转需要 Codex Desktop。具体客户端版本与支持范围见[兼容性说明](docs/COMPATIBILITY.md)。
 
-从[最新发布](https://github.com/mumchristmas/RehireBar/releases/latest)下载 **[Apple Silicon 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.2/RehireBar-0.5.2-macos-arm64.zip)**或 **[Intel 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.2/RehireBar-0.5.2-macos-x86_64.zip)**，核对校验值，将解压出的应用移入“应用程序”。
+从[最新发布](https://github.com/mumchristmas/RehireBar/releases/latest)下载 **[Apple Silicon 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-arm64.zip)**或 **[Intel 版](https://github.com/mumchristmas/RehireBar/releases/download/v0.5.3/RehireBar-0.5.3-macos-x86_64.zip)**，核对校验值，将解压出的应用移入“应用程序”。
 
 安装包使用 ad-hoc 签名，尚未公证。首次启动见[安装指南](docs/INSTALLATION.md)。仅从源码构建时需要带 Swift 6 的 Xcode：
 
@@ -33,6 +33,8 @@ open 'dist/RehireBar.app'
 ```
 
 ## 扩展开发
+
+把这个仓库交给你熟悉的编程 Agent，让它帮你接入常用工具、编译自己的 RehireBar。项目已备好接口文档、示例和构建脚本，方便直接上手。
 
 接入其他 Agent 时，通常只需编写状态发布器，原子写入 `~/Library/Application Support/RehireBar/agents/<provider>.json`，现有界面会按统一契约读取。
 

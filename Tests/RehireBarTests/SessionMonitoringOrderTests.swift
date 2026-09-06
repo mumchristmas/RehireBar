@@ -3,6 +3,36 @@ import XCTest
 @testable import RehireBar
 
 final class SessionMonitoringOrderTests: XCTestCase {
+    func testWaitingFirstKeepsInputVisibleBesideThreeRunningTasks() {
+        let running = (1...3).map { task("run-\($0)", state: .working, activity: 200) }
+        let waiting = task("wait", state: .waiting, activity: 100)
+        let failed = task("error", state: .error, activity: 50)
+        let tasks = running + [waiting, failed]
+
+        XCTAssertEqual(SessionMonitoringOrder.sorted(tasks).prefix(3).map(\.executionState),
+                       [.working, .working, .working])
+        let ordered = SessionMonitoringOrder.sorted(tasks, mode: .waitingFirst)
+        XCTAssertEqual(ordered.map(\.threadID), ["wait", "error", "run-1", "run-2", "run-3"])
+        XCTAssertEqual(Set(ordered.compactMap(\.identity)), Set(tasks.compactMap(\.identity)))
+    }
+
+    func testExpiredWaitingEvidenceDoesNotStayAtTheFront() {
+        let waiting = task("wait", state: .waiting, activity: 100, observed: 100)
+        let running = task("run", state: .working, activity: 200, observed: 200)
+        let aged = [waiting, running].map { $0.expiringEvidence(at: Date(timeIntervalSince1970: 200)) }
+
+        let ordered = SessionMonitoringOrder.sorted(aged, mode: .waitingFirst)
+
+        XCTAssertEqual(ordered.map(\.threadID), ["run", "wait"])
+        XCTAssertEqual(ordered.last?.executionState, .unknown)
+    }
+
+    func testUnknownOrMissingSortPreferencePreservesRunningFirst() {
+        XCTAssertEqual(SessionSortMode(preference: nil), .runningFirst)
+        XCTAssertEqual(SessionSortMode(preference: "unsupported"), .runningFirst)
+        XCTAssertEqual(SessionSortMode(preference: "waiting-first"), .waitingFirst)
+    }
+
     func testRecentActivityWinsOverIDAndFreshPollingTime() {
         let old = task("a-old", activity: 10, observed: 1_000)
         let recent = task("z-recent", activity: 200, observed: 201)

@@ -45,6 +45,17 @@ jobs:
           with tempfile.TemporaryDirectory() as directory:
               subprocess.run(["ditto", "-x", "-k", str(archive), directory], check=True)
               app = Path(directory) / "RehireBar.app/Contents"
+              installed = plistlib.loads((app / "Info.plist").read_bytes())
+              assert installed["SUPublicEDKey"] == metadata["SUPublicEDKey"]
+              assert installed["SUFeedURL"].endswith(f"/appcast-{architecture}.xml")
+              assert installed["SURequireSignedFeed"] is True
+              assert installed["SUVerifyUpdateBeforeExtraction"] is True
+              assert (app / "Frameworks/Sparkle.framework/Sparkle").is_file()
+              version_result = subprocess.run(
+                  [str(app / "MacOS/RehireBar"), "--version"],
+                  capture_output=True, text=True, check=True, timeout=10,
+              )
+              assert version_result.stdout.strip() == f"RehireBar {version} ({metadata['CFBundleVersion']})"
               result = subprocess.run(
                   [str(app / "MacOS/RehireBar"), "doctor", "--json"],
                   capture_output=True, check=True, timeout=10,

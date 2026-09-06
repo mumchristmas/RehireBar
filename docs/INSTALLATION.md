@@ -86,6 +86,13 @@ running RehireBar first. This does not configure the separately launched login i
 In RehireBar 0.5.3 and later, use [the doctor command](DIAGNOSTICS.md) to see which
 desktop bundle and CLI version the current process detects.
 
+## In-app updates
+
+For in-app upgrades, see [Application updates](UPDATES.md). The updater needs its
+signed architecture-specific feed published alongside the release archives.
+Versions that predate this updater require one manual installation of an
+updater-enabled release before in-app upgrades become available.
+
 ## Developer ID distribution
 
 Maintainers can set `REHIREBAR_SIGNING_IDENTITY` to their Developer ID Application identity when running `scripts/build-app.sh`. Developer ID signing and notarization require a separate distribution setup; this first release uses ad-hoc signing.

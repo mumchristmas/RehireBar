@@ -74,11 +74,11 @@ struct DoctorReport: Encodable {
         let build: String?
 
         init(bundle: Bundle) {
-            name = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-                ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
+            let metadata = ApplicationVersion(info: bundle.infoDictionary ?? [:])
+            name = metadata.name
             bundleIdentifier = bundle.bundleIdentifier
-            version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-            build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            version = metadata.version
+            build = metadata.build
         }
     }
 

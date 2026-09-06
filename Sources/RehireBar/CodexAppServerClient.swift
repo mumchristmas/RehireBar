@@ -26,9 +26,16 @@ struct CodexAppServerClient: UsageFetching, Sendable {
     }) {
         self.runnerFactory = runnerFactory
     }
-    static let initializeRequest = Data(
-        (#"{"id":1,"method":"initialize","params":{"clientInfo":{"name":"rehirebar","version":"0.5.0"}}}"# + "\n").utf8
-    )
+    static let initializeRequest = makeInitializeRequest(version: ApplicationVersion.current.version)
+
+    static func makeInitializeRequest(version: String?) -> Data {
+        let request: [String: Any] = [
+            "id": 1, "method": "initialize",
+            "params": ["clientInfo": ["name": "rehirebar", "version": version ?? "development"]],
+        ]
+        // Only JSON-native dictionaries, strings, and an integer are encoded here.
+        return try! JSONSerialization.data(withJSONObject: request, options: .sortedKeys) + Data([0x0A])
+    }
     static let initializedNotification = Data(
         (#"{"method":"initialized","params":{}}"# + "\n").utf8
     )

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.5.4 — 2026-09-06
+
+- Show the installed marketing version and build in the menu and through
+  `--version`; use the same bundle version in Codex client initialization.
+- Add **Check for Updates…** with Sparkle 2.9.6. Users confirm installation;
+  background checking, automatic installation, and system profiling are off by default.
+- Verify signed update feeds and archives before installation; package the updater
+  framework and its notices, and generate separate signed ARM/Intel update feeds.
+- Add an isolated updater test covering install/relaunch, no update, downgrade
+  prevention, and rejection of modified feeds or archives.
+- Normalize all bundle permissions after code signing, including generated
+  signature files, so packages built with a private umask remain readable.
+
 ## 0.5.3 — 2026-09-06
 
 - Add a persistent **Task order → Waiting first** option that brings waiting and

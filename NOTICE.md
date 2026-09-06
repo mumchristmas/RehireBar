@@ -11,3 +11,8 @@ RehireBar is an independent community project and is not affiliated with Apple o
 The English and Chinese hero images in `docs/assets/rehirebar-hero-en.png` and `docs/assets/rehirebar-hero-zh-CN.png` use a [MacBook Pro Touch Bar photograph by Nik](https://unsplash.com/photos/black-and-gray-lenovo-laptop-3LJdk7FlqrI), available under the [Unsplash License](https://unsplash.com/license).
 
 These images are AI-assisted illustrative composites: the photograph was reframed and the RehireBar interface was rendered from screenshots with example task names and values. The separate `rehirebar-touchbar-en.png` and `rehirebar-touchbar-zh-CN.png` files are complete, uncropped captures of the actual Touch Bar interface.
+
+The application embeds [Sparkle](https://github.com/sparkle-project/Sparkle), an
+open-source macOS update framework. Its full copyright, permission, and bundled
+component notices are preserved in `Contents/Resources/Sparkle-LICENSE.txt` in
+each application package. Swift Package Manager pins the framework distribution.

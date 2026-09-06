@@ -17,14 +17,33 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.5.3</string>
+    <string>0.5.4</string>
     <key>CFBundleVersion</key>
-    <string>14</string>
+    <string>15</string>
     <key>LSMinimumSystemVersion</key>
     <string>15.0</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <!-- build-app.sh selects the architecture-specific feed before signing. -->
+    <key>SUFeedURL</key>
+    <string>https://github.com/mumchristmas/RehireBar/releases/latest/download/appcast-arm64.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>O7luDKPve3yXCRlCJahbhcE7iKT5g5/D1//8F2tI5U4=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <false/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
+    <key>SUAllowsAutomaticUpdates</key>
+    <false/>
+    <key>SUEnableSystemProfiling</key>
+    <false/>
+    <key>SURequireSignedFeed</key>
+    <true/>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
+    <key>SUSignedFeedFailureExpirationInterval</key>
+    <integer>0</integer>
 </dict>
 </plist>

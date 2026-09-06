@@ -4,6 +4,11 @@ RehireBar runs in the background and exposes one persistent status-strip icon in
 
 ## Open and collapse the status bar
 
+Open the menu-bar icon to see the installed version and build. **Check for Updates…**
+opens the native update workflow; you decide whether to install and restart.
+Background update checks and automatic installation are off by default. See
+[Application updates](UPDATES.md).
+
 Tap the status-strip Control Strip icon to present the full status bar. Use the close control on the left to collapse it back to the native Control Strip. Background data refreshes, the 15-second health check, and ordinary Codex foreground activation do not reopen a collapsed bar. The app preserves native brightness, volume, and other macOS controls.
 
 The menu-bar app icon provides **Show Touch Bar** to restore the full bar,

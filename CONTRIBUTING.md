@@ -56,6 +56,19 @@ For release packaging, `bash scripts/build-release.sh` builds and verifies separ
 Apple silicon and Intel ZIPs plus `SHA256SUMS` under `release/`. Verification checks
 each Mach-O architecture so the filename cannot silently mislabel a build.
 
+The build embeds the pinned Sparkle framework, preserving its symlinks and signing
+information. Maintainers with the update signing key can use
+`bash scripts/build-release.sh --sign-updates` to also generate verified,
+architecture-specific update feeds. This does not upload or publish anything.
+See [Application updates](docs/UPDATES.md) before changing feed URLs or signing keys.
+
+On a logged-in Mac, `python3 scripts/test-updater.py` exercises the real Sparkle
+installer using disposable applications and a fresh test-only signing seed. It
+does not replace RehireBar or access the production signing key. This checks an
+upgrade and relaunch, same-version/downgrade handling, and invalid signatures.
+It complements the native package checks; it does not prove that a public feed
+has been uploaded or that privileged installation works on every target machine.
+
 CI retains the release archives from each macOS runner and executes that runner's
 native archive through `doctor --json`. For publication, select the arm64 ZIP from
 the Apple silicon runner and the x86_64 ZIP from the Intel runner at the verified

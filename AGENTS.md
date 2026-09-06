@@ -31,6 +31,9 @@ available facts.
   over a stale `working`, `syncing`, or `waiting` state.
 - A task URL is opened only after the user taps that task card.
 - Ordinary refreshes must not reopen a Touch Bar the user manually collapsed.
+- Application updates use Sparkle with signed feeds and archives. Keep update
+  checks separate from status polling; defaults must require a user-initiated
+  check and installation. Never commit private update-signing seeds.
 
 ## Required validation
 

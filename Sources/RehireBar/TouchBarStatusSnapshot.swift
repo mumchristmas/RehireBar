@@ -116,7 +116,7 @@ private enum SessionSnapshotMerger {
         collection: [CurrentSessionSnapshot]
     ) -> [CurrentSessionSnapshot] {
         guard let current else { return collection }
-        guard let identity = current.identity else { return [current] + collection }
+        guard let identity = current.identity else { return collection }
         if let match = collection.first(where: { $0.identity == identity }) {
             return merging(current: current, match: match, collection: collection)
         }
@@ -132,7 +132,9 @@ private enum SessionSnapshotMerger {
             }
             if !matches.isEmpty { return collection }
         }
-        return [current] + collection
+        // A focused snapshot enriches catalog members; it cannot restore a
+        // task removed by archiving. On read failure the caller supplies fallback.
+        return collection
     }
 
     private static func merging(
@@ -198,12 +200,12 @@ struct LiveSessionStatusProvider: StatusFetching, Sendable {
         let collectionResult = await sessionsResult
         let collection = SessionSnapshotMerger.mergedSessions(
             current: current,
-            collection: collectionResult.optionalValue ?? []
+            collection: collectionResult.optionalValue ?? current.map { [$0] } ?? []
         )
         guard current != nil || collectionResult.optionalValue != nil else { throw UsageError.unavailable }
         return TouchBarStatusSnapshot(
             usage: nil,
-            session: collection.first ?? current,
+            session: collection.first,
             sessions: collection
         )
     }

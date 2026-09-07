@@ -3,6 +3,25 @@ import XCTest
 @testable import RehireBar
 
 final class CurrentSessionProviderTests: XCTestCase {
+    func testArchivedRolloutCannotBecomeCurrentOrSelectedPlaceholder() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let id = "10000000-0000-4000-8000-000000000002"
+        try write([
+            sessionMeta(threadID: id),
+            tokenCount(timestamp: "2026-07-12T00:01:01Z", used: 100, cumulative: 100, window: 1000),
+        ], to: root.appending(path: "archived_sessions/rollout-\(id).jsonl"))
+        for selection in [nil, SelectedThreadState(initialThreadID: id)] {
+            do {
+                _ = try await CurrentSessionProvider(
+                    root: root, now: { sessionTestDate("2026-07-12T00:01:30Z") },
+                    selectedThread: selection
+                ).fetchSession()
+                XCTFail("Archived task must not supply a snapshot or placeholder")
+            } catch { XCTAssertTrue(error is UsageError) }
+        }
+    }
+
     func testNewestSessionUsesLastTokenUsageAndSameFileMetadata() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }

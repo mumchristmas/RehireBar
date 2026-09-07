@@ -4,6 +4,30 @@ import XCTest
 @testable import RehireBar
 
 final class CodexSessionCatalogProviderTests: XCTestCase {
+    func testArchiveStateOverridesCachedCatalogWithoutHidingRemoteIdentity() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let catalog = root.appending(path: "catalog.sqlite")
+        let state = root.appending(path: "state_5.sqlite")
+        let id = "10000000-0000-4000-8000-000000000002"
+        try makeCatalog(at: catalog)
+        try insert("INSERT INTO local_thread_catalog VALUES ('local', '\(id)', 'Local', '/tmp', 100, 100, 0), ('remote-ssh-codex-managed:TestHost', '\(id)', 'Remote', '/tmp', 100, 100, 0);", into: catalog)
+        try insert("CREATE TABLE threads (id TEXT, archived INTEGER); INSERT INTO threads VALUES ('\(id)', 0);", into: state)
+        let provider = CodexSessionCatalogProvider(root: root, databaseURL: catalog)
+        let before = try await provider.fetchSessions()
+        XCTAssertEqual(before.count, 2)
+        try insert("UPDATE threads SET archived = 1;", into: state)
+        let archived = try await provider.fetchSessions()
+        XCTAssertEqual(archived.map(\.hostID), ["remote-ssh-codex-managed:TestHost"])
+        try insert("UPDATE threads SET archived = 0;", into: state)
+        let restored = try await provider.fetchSessions()
+        XCTAssertEqual(restored.count, 2)
+        try insert("UPDATE local_thread_catalog SET missing_candidate = 1;", into: catalog)
+        let empty = try await provider.fetchSessions()
+        XCTAssertTrue(empty.isEmpty)
+    }
+
     func testFreshDesktopSnapshotClearsHistoricalFastTier() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -68,7 +92,7 @@ final class CodexSessionCatalogProviderTests: XCTestCase {
         XCTAssertEqual(updated.count, 2)
     }
 
-    func testTransientEmptyCatalogKeepsLastRowsAndStillRetriesRecovery() async throws {
+    func testEmptyCatalogClearsLastRowsAndStillObservesRecovery() async throws {
         let root = FileManager.default.temporaryDirectory
             .appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -101,7 +125,7 @@ final class CodexSessionCatalogProviderTests: XCTestCase {
         let recovered = try await provider.fetchSessions()
 
         XCTAssertEqual(initial.map(\.threadID), [firstID])
-        XCTAssertEqual(duringGap.map(\.threadID), [firstID])
+        XCTAssertTrue(duringGap.isEmpty)
         XCTAssertEqual(recovered.map(\.threadID), [recoveredID])
         XCTAssertEqual(recovered.first?.title, "After recovery")
     }

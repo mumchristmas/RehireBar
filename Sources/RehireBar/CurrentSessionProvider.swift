@@ -28,10 +28,12 @@ struct CurrentSessionProvider: SessionFetching, Sendable {
         let metadata = metadata
         let snapshots = snapshots
         try Task.checkCancellation()
-        let candidates = await Task.detached(priority: .utility) {
-            SessionLogUsageProvider.candidateFiles(root: root)
+        let (candidates, archivedIDs) = try await Task.detached(priority: .utility) {
+            (SessionLogUsageProvider.candidateFiles(root: root, includingArchived: false),
+             try CodexArchivedThreads.read(root: root))
         }.value
         if let threadID = selectedThread?.threadID {
+            guard !archivedIDs.contains(threadID) else { throw UsageError.unavailable }
             let threadMetadata = await Task.detached(priority: .utility) {
                 Self.metadata(for: threadID, using: metadata)
             }.value
@@ -67,7 +69,8 @@ struct CurrentSessionProvider: SessionFetching, Sendable {
         var newest: CurrentSessionSnapshot?
         for candidate in candidates {
             try Task.checkCancellation()
-            guard let snapshot = await snapshots.snapshot(in: candidate) else { continue }
+            guard let snapshot = await snapshots.snapshot(in: candidate),
+                  !archivedIDs.contains(snapshot.threadID ?? "") else { continue }
             if newest == nil || snapshot.observedAt > newest!.observedAt { newest = snapshot }
         }
         guard var snapshot = newest,

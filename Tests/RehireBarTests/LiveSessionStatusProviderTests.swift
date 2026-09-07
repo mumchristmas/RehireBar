@@ -16,6 +16,25 @@ final class LiveSessionStatusProviderTests: XCTestCase {
         XCTAssertNil(status.session)
     }
 
+    func testSelectedTaskCannotReappearAfterCatalogRemoval() async throws {
+        let current = CurrentSessionSnapshot(
+            sessionID: "selected", threadID: "10000000-0000-4000-8000-000000000002",
+            usedTokens: 10, contextWindow: 100, model: nil, effort: nil, observedAt: .now
+        )
+        let status = try await LiveSessionStatusProvider(
+            session: StubLiveSessionFetcher(result: .success(current)),
+            sessions: StubLiveSessionCollectionFetcher(result: .success([]))
+        ).fetchStatus()
+        XCTAssertTrue(status.sessions.isEmpty)
+        XCTAssertNil(status.session)
+
+        let fallback = try await LiveSessionStatusProvider(
+            session: StubLiveSessionFetcher(result: .success(current)),
+            sessions: StubLiveSessionCollectionFetcher(result: .failure(UsageError.unavailable))
+        ).fetchStatus()
+        XCTAssertEqual(fallback.sessions.map(\.identity), [current.identity])
+    }
+
     func testSameThreadIDOnDifferentHostsDoesNotCrossMergeRuntimeFields() async throws {
         let threadID = "10000000-0000-4000-8000-000000000002"
         let selectedPlaceholder = CurrentSessionSnapshot(
@@ -37,11 +56,9 @@ final class LiveSessionStatusProviderTests: XCTestCase {
 
         let status = try await provider.fetchStatus()
 
-        XCTAssertEqual(status.sessions.count, 2)
-        let local = try XCTUnwrap(status.sessions.first { $0.hostID == "local" })
+        XCTAssertEqual(status.sessions.count, 1)
+        XCTAssertFalse(status.sessions.contains { $0.hostID == "local" })
         let remote = try XCTUnwrap(status.sessions.first { $0.identity == remoteRuntime.identity })
-        XCTAssertEqual(local.usedTokens, 0)
-        XCTAssertNil(local.model)
         XCTAssertEqual(remote.usedTokens, 196_000)
         XCTAssertEqual(remote.model, remoteRuntime.model)
         XCTAssertEqual(status.session?.identity, remoteRuntime.identity)
@@ -59,7 +76,7 @@ final class LiveSessionStatusProviderTests: XCTestCase {
         )
         let provider = LiveSessionStatusProvider(
             session: StubLiveSessionFetcher(result: .success(current)),
-            sessions: StubLiveSessionCollectionFetcher(result: .success([remote]))
+            sessions: StubLiveSessionCollectionFetcher(result: .success([remote, current]))
         )
 
         let status = try await provider.fetchStatus()

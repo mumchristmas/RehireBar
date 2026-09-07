@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Remove archived Codex tasks from the Touch Bar, including selected tasks and
+  the final task in the catalog. Archive checks stay scoped to the local host;
+  successful empty catalogs clear old cards instead of preserving cached tasks.
+
 ## 0.5.5 — 2026-09-06
 
 - Start collapsed and open only from the Control Strip icon or **Show Touch Bar**.

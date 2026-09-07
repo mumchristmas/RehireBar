@@ -58,11 +58,16 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
         let threadMetadataCache = threadMetadataCache
         let rolloutSnapshots = rolloutSnapshots
         let now = now
-        let rows = try await catalogRows.rows(limit: maximumCatalogRows)
-        guard !rows.isEmpty else { throw UsageError.unavailable }
+        let archivedIDs = try await Task.detached(priority: .utility) {
+            try CodexArchivedThreads.read(root: root)
+        }.value
+        let rows = try await catalogRows.rows(limit: maximumCatalogRows).filter {
+            $0.hostKind != .local || !archivedIDs.contains($0.threadID)
+        }
+        guard !rows.isEmpty else { return [] }
         let rolloutCandidates = await Task.detached(priority: .utility) {
             let localIDs = Set(rows.lazy.filter { $0.hostKind == .local }.map(\.threadID))
-            return SessionLogUsageProvider.candidateFiles(root: root).filter { candidate in
+            return SessionLogUsageProvider.candidateFiles(root: root, includingArchived: false).filter { candidate in
                 CurrentSessionProvider.threadID(inRolloutFilename: candidate.file)
                     .map(localIDs.contains) == true
             }
@@ -520,7 +525,9 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
         }
 
         var rows: [CatalogRow] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
+        var step = sqlite3_step(statement)
+        while step == SQLITE_ROW {
+            defer { step = sqlite3_step(statement) }
             guard let threadID = text(in: statement, column: 0),
                   let hostID = text(in: statement, column: 5),
                   let hostKind = text(in: statement, column: 6)
@@ -542,6 +549,7 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
                 hostKind: CodexHostKind(catalogValue: hostKind)
             ))
         }
+        guard step == SQLITE_DONE else { throw CocoaError(.fileReadUnknown) }
         return rows
     }
 
@@ -678,13 +686,8 @@ private actor CatalogRowCache {
             guard !cachedRows.isEmpty else { throw error }
             return Array(cachedRows.prefix(limit))
         }
-        // Codex updates the catalog and its host table independently. A reader can
-        // briefly observe no joined rows even though the task history still exists.
-        // Keep the last non-empty row set, but do not accept the new signature so
-        // the next refresh retries instead of pinning the empty observation.
-        guard !loaded.isEmpty else {
-            return Array(cachedRows.prefix(limit))
-        }
+        // A successful empty query is authoritative: the last task may have
+        // been archived or removed. Do not resurrect the previous collection.
         cachedSignature = signature
         cachedLimit = limit
         cachedRows = loaded

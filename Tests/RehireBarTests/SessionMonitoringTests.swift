@@ -90,7 +90,7 @@ final class SessionMonitoringTests: XCTestCase {
         let oldTask = snapshot(id: "old-task", state: .working, tokens: 100)
         let status = try await LiveSessionStatusProvider(
             session: MonitoringSession(snapshot: oldTask),
-            sessions: MonitoringCollection(snapshots: []),
+            sessions: MonitoringCollection(snapshots: [], unavailable: true),
             now: { Date(timeIntervalSince1970: 600) }
         ).fetchStatus()
 
@@ -222,7 +222,11 @@ private struct MonitoringSession: SessionFetching {
 
 private struct MonitoringCollection: SessionCollectionFetching {
     let snapshots: [CurrentSessionSnapshot]
-    func fetchSessions() async throws -> [CurrentSessionSnapshot] { snapshots }
+    var unavailable = false
+    func fetchSessions() async throws -> [CurrentSessionSnapshot] {
+        if unavailable { throw UsageError.unavailable }
+        return snapshots
+    }
 }
 
 private actor MonitoringRuntimeCache: DesktopThreadSnapshotCaching {

@@ -46,7 +46,7 @@ struct SessionLogUsageProvider: UsageFetching, Sendable {
         return snapshot
     }
 
-    static func candidateFiles(root: URL) -> [SafeSessionCandidate] {
+    static func candidateFiles(root: URL, includingArchived: Bool = true) -> [SafeSessionCandidate] {
         let fileManager = FileManager.default
         let keys: Set<URLResourceKey> = [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey]
         var files: [SafeSessionCandidate] = []
@@ -65,7 +65,7 @@ struct SessionLogUsageProvider: UsageFetching, Sendable {
         }
 
         let archived = root.appending(path: "archived_sessions", directoryHint: .isDirectory)
-        if let children = try? fileManager.contentsOfDirectory(
+        if includingArchived, let children = try? fileManager.contentsOfDirectory(
             at: archived,
             includingPropertiesForKeys: Array(keys),
             options: [.skipsHiddenFiles]

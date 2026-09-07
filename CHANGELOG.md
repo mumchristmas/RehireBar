@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.6 — 2026-09-07
+
 ### Added
 
 - Use native traffic-light icons and short Agent connection-status labels, with
@@ -13,6 +15,9 @@
   visibility does not open a collapsed Touch Bar.
 
 ### Fixed
+
+- Prevent historical Fast mode settings from resurfacing after a newer explicit
+  setting clears them, across catalog, current-session, and desktop IPC reads.
 
 - Remove archived Codex tasks from the Touch Bar, including selected tasks and
   the final task in the catalog. Archive checks stay scoped to the local host;

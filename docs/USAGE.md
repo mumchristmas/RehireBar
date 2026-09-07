@@ -31,7 +31,7 @@ Quota windows are identified by duration, not response order. If the account pla
 If Codex exposes a 5H window but you prefer to reserve that width for 7D and task cards, set the local display preference and restart the helper:
 
 ```bash
-defaults write com.bigbom.RehireBar hideFiveHourQuota -bool true
+defaults write com.damgood.RehireBar hideFiveHourQuota -bool true
 ```
 
 Set it to `false` to restore the 5H module. This changes only presentation; collection and caching remain intact.

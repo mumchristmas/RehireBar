@@ -8,7 +8,7 @@ final class SingleInstanceGuard {
     private let lockPath: String
     private var descriptor: Int32 = -1
 
-    init(identifier: String = "com.bigbom.RehireBar") {
+    init(identifier: String = "com.damgood.RehireBar") {
         lockPath = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("\(identifier).instance.lock", isDirectory: false)
             .path

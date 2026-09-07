@@ -43,9 +43,13 @@ permanent location; macOS may request authorization for protected destinations.
 ## Signing identity
 
 The public Ed25519 key is stored in `Resources/Info.plist` as `SUPublicEDKey`.
-The RehireBar publishing key is kept in the maintainer's login Keychain under
-the account `com.bigbom.RehireBar.updates`. It is not stored in the repository.
-Sparkle's `generate_keys --account com.bigbom.RehireBar.updates -p` prints only
+The release scripts expect the RehireBar publishing key in the maintainer's login
+Keychain under the account `com.damgood.RehireBar.updates`. The private key is not
+stored in the repository. Changing the default account name does not migrate an
+existing Keychain entry: before signing, migrate the existing key securely or set
+`REHIREBAR_UPDATE_KEY_ACCOUNT` to its existing account name. Preserve the key that
+matches the bundled public key.
+Sparkle's `generate_keys --account com.damgood.RehireBar.updates -p` prints only
 the corresponding public key and does not generate or replace a key.
 
 Keep a secure backup using Sparkle's documented key-export procedure. Losing this

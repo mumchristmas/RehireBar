@@ -9,7 +9,7 @@ final class CodexDesktopIPCClient: DesktopThreadSnapshotFetching, Sendable {
     private static let clientType = "rehirebar"
     private static let maximumFramesPerResponse = 64
     private static let statusReadQueue = DispatchQueue(
-        label: "com.bigbom.RehireBar.status-ipc", qos: .utility, attributes: .concurrent
+        label: "com.damgood.RehireBar.status-ipc", qos: .utility, attributes: .concurrent
     )
 
     func submitUserMessage(threadID: String, text: String) async throws -> Bool {

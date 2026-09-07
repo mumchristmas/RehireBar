@@ -9,7 +9,7 @@ protocol LoginItemManaging: AnyObject {
 
 @MainActor
 final class LoginItemManager: LoginItemManaging {
-    private let logger = Logger(subsystem: "com.bigbom.RehireBar", category: "login-item")
+    private let logger = Logger(subsystem: "com.damgood.RehireBar", category: "login-item")
 
     func register() {
         let bundleURL = Bundle.main.bundleURL.resolvingSymlinksInPath().standardizedFileURL

@@ -11,7 +11,7 @@ TOOLS="$ROOT/.build/artifacts/sparkle/Sparkle/bin"
 VERSION="$(plutil -extract CFBundleShortVersionString raw "$ROOT/Resources/Info.plist")"
 BUILD="$(plutil -extract CFBundleVersion raw "$ROOT/Resources/Info.plist")"
 EXPECTED_KEY="$(plutil -extract SUPublicEDKey raw "$ROOT/Resources/Info.plist")"
-ACCOUNT="${REHIREBAR_UPDATE_KEY_ACCOUNT:-com.bigbom.RehireBar.updates}"
+ACCOUNT="${REHIREBAR_UPDATE_KEY_ACCOUNT:-com.damgood.RehireBar.updates}"
 REPOSITORY="${REHIREBAR_RELEASE_REPOSITORY:-mumchristmas/RehireBar}"
 [[ "$REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "Invalid release repository" >&2; exit 2; }
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$BUILD" =~ ^[0-9]+$ ]] || {

@@ -10,7 +10,7 @@ struct SystemModalPresentationPlan: Equatable {
     static let controlStripPreserving = SystemModalPresentationPlan(
         selectorName: "presentSystemModalTouchBar:systemTrayItemIdentifier:",
         usesPlacement: false,
-        systemTrayIdentifier: NSTouchBarItem.Identifier("com.bigbom.RehireBar.controlStrip")
+        systemTrayIdentifier: NSTouchBarItem.Identifier("com.damgood.RehireBar.controlStrip")
     )
 }
 

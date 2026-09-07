@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>RehireBar</string>
     <key>CFBundleIdentifier</key>
-    <string>com.bigbom.RehireBar</string>
+    <string>com.damgood.RehireBar</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>

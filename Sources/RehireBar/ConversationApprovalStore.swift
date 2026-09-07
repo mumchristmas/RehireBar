@@ -1,7 +1,7 @@
 import Foundation
 
 final class ConversationApprovalStore: @unchecked Sendable {
-    static let changedNotification = Notification.Name("com.bigbom.RehireBar.approvalChanged")
+    static let changedNotification = Notification.Name("com.damgood.RehireBar.approvalChanged")
     private let url: URL
     private let lock = NSLock()
 

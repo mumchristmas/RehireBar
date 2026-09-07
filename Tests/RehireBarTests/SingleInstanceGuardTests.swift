@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class SingleInstanceGuardTests: XCTestCase {
     func testRejectsSecondOwnerUntilFirstReleasesLock() {
-        let identifier = "com.bigbom.RehireBar.tests.\(UUID().uuidString)"
+        let identifier = "com.damgood.RehireBar.tests.\(UUID().uuidString)"
         let first = SingleInstanceGuard(identifier: identifier)
         let second = SingleInstanceGuard(identifier: identifier)
 

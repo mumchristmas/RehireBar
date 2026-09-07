@@ -2,11 +2,14 @@
 
 ## Unreleased
 
+## 0.5.7 — 2026-09-07
+
 ### Changed
 
 - Change the bundle identifier and internal namespace to `com.damgood.RehireBar`,
   including the default update-signing Keychain account. The new bundle identity
   uses a new preferences domain; existing preferences are not migrated automatically.
+  Quit the previous app and manually install this release for the identity transition.
 
 ## 0.5.6 — 2026-09-07
 

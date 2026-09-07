@@ -28,6 +28,13 @@ installed on those Macs. After that installation, the app can update itself from
 the signed feed. The first public updater-enabled release must include the feed
 assets described below; the previous public release does not provide them.
 
+Version 0.5.7 changes the bundle identifier to `com.damgood.RehireBar`.
+For this identity transition, quit the previous app and manually replace it with
+the matching release download. Cross-identity Sparkle upgrades are not a supported
+migration path ([upstream guidance](https://github.com/sparkle-project/Sparkle/issues/1600)).
+Preferences are not migrated automatically; reconfigure preferences and login-item
+registration after installation as needed.
+
 Each architecture has its own feed and package. An Intel build follows the Intel
 feed even under Rosetta. The feed declares the update's build number and minimum
 macOS/hardware requirements; an incompatible build is not installed. Sparkle

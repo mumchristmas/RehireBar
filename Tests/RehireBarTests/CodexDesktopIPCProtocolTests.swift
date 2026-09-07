@@ -3,6 +3,39 @@ import XCTest
 @testable import RehireBar
 
 final class CodexDesktopIPCProtocolTests: XCTestCase {
+    func testCurrentServiceTierNeverComesFromHistory() throws {
+        for current in ["null", "\"default\"", "\"priority\""] {
+            let payload = Data("""
+            {"type":"broadcast","method":"thread-stream-state-changed","params":{"conversationId":"thread-id","change":{"type":"snapshot","conversationState":{"latestServiceTier":\(current),"latestThreadSettings":{"serviceTier":"priority"},"messages":[{"serviceTier":"priority"},{"latestServiceTier":"priority"}]}}}}
+            """.utf8)
+            let snapshot = try XCTUnwrap(CodexDesktopIPCMessageFactory.threadSnapshot(
+                in: payload, identity: TaskIdentity(hostID: "local", threadID: "thread-id")
+            ))
+            XCTAssertEqual(snapshot.serviceTier, current == "null" ? nil : current.replacingOccurrences(of: "\"", with: ""))
+        }
+        let payload = Data(#"{"type":"broadcast","method":"thread-stream-state-changed","params":{"conversationId":"thread-id","change":{"type":"snapshot","conversationState":{"messages":[{"serviceTier":"priority"}]}}}}"#.utf8)
+        let snapshot = try XCTUnwrap(CodexDesktopIPCMessageFactory.threadSnapshot(
+            in: payload, identity: TaskIdentity(hostID: "local", threadID: "thread-id")
+        ))
+        XCTAssertNil(snapshot.serviceTier)
+    }
+
+    func testCurrentThreadSettingsSupplyTierWhenLegacyFieldIsAbsent() throws {
+        for (settings, expected) in [
+            (#"{"serviceTier":"priority"}"#, "priority" as String?),
+            (#"{"service_tier":"fast"}"#, "fast"),
+            (#"{"serviceTier":null,"service_tier":"priority"}"#, nil),
+        ] {
+            let payload = Data("""
+            {"type":"broadcast","method":"thread-stream-state-changed","params":{"conversationId":"thread-id","change":{"type":"snapshot","conversationState":{"latestThreadSettings":\(settings),"messages":[{"serviceTier":"priority"}]}}}}
+            """.utf8)
+            let snapshot = try XCTUnwrap(CodexDesktopIPCMessageFactory.threadSnapshot(
+                in: payload, identity: TaskIdentity(hostID: "local", threadID: "thread-id")
+            ))
+            XCTAssertEqual(snapshot.serviceTier, expected)
+        }
+    }
+
     func testReplyRequestTargetsExactThreadAndUsesFixedResponse() throws {
         let thread = "10000000-0000-4000-8000-000000000002"
         let payload = try CodexDesktopIPCMessageFactory.replyRequest(requestID: "r", clientID: "c", threadID: thread, text: "อนุมัติ ดำเนินการต่อได้")

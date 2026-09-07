@@ -411,8 +411,8 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
             contextWindow: hasContext ? runtime.contextWindow! : snapshot.contextWindow,
             model: hasModel ? (runtime.model ?? snapshot.model) : snapshot.model,
             effort: hasModel ? (runtime.effort ?? snapshot.effort) : snapshot.effort,
-            serviceTier: hasModel ? (runtime.serviceTier ?? snapshot.serviceTier)
-                : snapshot.serviceTier,
+            // A fresh Desktop snapshot may explicitly clear the current tier.
+            serviceTier: hasModel ? runtime.serviceTier : snapshot.serviceTier,
             observedAt: max(snapshot.observedAt, runtime.observedAt),
             lastActivityAt: snapshot.lastActivityAt,
             contextObservedAt: hasContext

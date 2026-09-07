@@ -68,6 +68,37 @@ final class CurrentSessionProviderTests: XCTestCase {
         XCTAssertTrue(snapshot.isFastMode)
     }
 
+    func testNewSettingsClearFastWithoutAnotherTokenCount() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try write([
+            threadSettings(model: "gpt-5.6-sol", effort: "high", serviceTier: "priority"),
+            tokenCount(timestamp: "2026-07-12T00:01:01Z", used: 13_000, cumulative: 20_000, window: 353_400),
+            threadSettings(model: "gpt-5.6-sol", effort: "high")
+                .replacingOccurrences(of: "00:01:00Z", with: "00:01:02Z"),
+        ], to: root.appending(path: "sessions/current.jsonl"))
+        let snapshot = try await CurrentSessionProvider(
+            root: root, now: { sessionTestDate("2026-07-12T00:01:30Z") }
+        ).fetchSession()
+        XCTAssertFalse(snapshot.isFastMode)
+        XCTAssertNil(snapshot.serviceTier)
+        XCTAssertEqual(snapshot.usedTokens, 13_000)
+    }
+
+    func testNewTurnDoesNotInheritOldFastSettings() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try write([
+            threadSettings(model: "gpt-5.6-sol", effort: "high", serviceTier: "priority"),
+            turnContext(timestamp: "2026-07-12T00:01:01Z", model: "gpt-5.6-sol", effort: "high"),
+            tokenCount(timestamp: "2026-07-12T00:01:02Z", used: 13_000, cumulative: 20_000, window: 353_400),
+        ], to: root.appending(path: "sessions/current.jsonl"))
+        let snapshot = try await CurrentSessionProvider(
+            root: root, now: { sessionTestDate("2026-07-12T00:01:30Z") }
+        ).fetchSession()
+        XCTAssertFalse(snapshot.isFastMode)
+    }
+
     func testThreadIDFallsBackToValidatedRolloutFilename() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }

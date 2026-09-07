@@ -270,7 +270,7 @@ enum CodexDesktopIPCMessageFactory {
             contextWindow: contextWindow,
             model: fields.reroutedModel ?? fields.model,
             effort: fields.effort ?? fields.fallbackEffort,
-            serviceTier: fields.latestServiceTier ?? fields.fallbackServiceTier,
+            serviceTier: currentServiceTier(in: state),
             executionState: executionState(from: fields.runtimeStatus),
             isCompactingContext: fields.isCompactingContext
         )
@@ -317,14 +317,23 @@ enum CodexDesktopIPCMessageFactory {
         }
     }
 
+    private static func currentServiceTier(in state: [String: Any]) -> String? {
+        // A null current tier clears fast mode. Historical turns are never a
+        // fallback: dictionary traversal order must not decide the current tier.
+        if let tier = state["latestServiceTier"] { return tier as? String }
+        guard let settings = state["latestThreadSettings"] as? [String: Any] else {
+            return nil
+        }
+        if let tier = settings["serviceTier"] { return tier as? String }
+        return settings["service_tier"] as? String
+    }
+
     private struct SnapshotFields {
         var tokenUsage: [String: Any]?
         var model: String?
         var reroutedModel: String?
         var effort: String?
         var fallbackEffort: String?
-        var latestServiceTier: String?
-        var fallbackServiceTier: String?
         var runtimeStatus: Any?
         var isCompactingContext = false
     }
@@ -357,13 +366,6 @@ enum CodexDesktopIPCMessageFactory {
                 fields.fallbackEffort = dictionary["reasoningEffort"] as? String
                     ?? dictionary["reasoning_effort"] as? String
                     ?? dictionary["effort"] as? String
-            }
-            if fields.latestServiceTier == nil {
-                fields.latestServiceTier = dictionary["latestServiceTier"] as? String
-            }
-            if fields.fallbackServiceTier == nil {
-                fields.fallbackServiceTier = dictionary["serviceTier"] as? String
-                    ?? dictionary["service_tier"] as? String
             }
             if fields.runtimeStatus == nil {
                 fields.runtimeStatus = dictionary["threadRuntimeStatus"]

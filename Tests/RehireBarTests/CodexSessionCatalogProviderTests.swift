@@ -4,6 +4,37 @@ import XCTest
 @testable import RehireBar
 
 final class CodexSessionCatalogProviderTests: XCTestCase {
+    func testFreshDesktopSnapshotClearsHistoricalFastTier() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let databaseURL = root.appending(path: "codex-dev.db")
+        try makeCatalog(at: databaseURL)
+        let threadID = "10000000-0000-4000-8000-000000000002"
+        try insert("INSERT INTO local_thread_catalog VALUES ('local', '\(threadID)', 'Task', '/tmp/Task', 190, 190, 0);", into: databaseURL)
+        try writeRollout(root: root, threadID: threadID, lines: [
+            #"{"timestamp":"1970-01-01T00:03:10Z","type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","service_tier":"priority"}}"#,
+            tokenCount(timestamp: "1970-01-01T00:03:11Z"),
+        ])
+        let runtime = FakeDesktopSnapshotFetcher(snapshot: .init(
+            observedAt: Date(timeIntervalSince1970: 200),
+            usedTokens: 1000, contextWindow: 100000,
+            model: "gpt-5.6-sol", effort: "high", serviceTier: nil,
+            executionState: .idle
+        ))
+        let sessions = try await CodexSessionCatalogProvider(
+            root: root, databaseURL: databaseURL,
+            selectedThread: SelectedThreadState(initialThreadID: threadID),
+            desktopSnapshots: runtime, now: { Date(timeIntervalSince1970: 200) }
+        ).fetchSessions()
+        let session = try XCTUnwrap(sessions.first)
+        XCTAssertEqual(session.model, "gpt-5.6-sol")
+        XCTAssertNil(session.serviceTier)
+        XCTAssertFalse(session.isFastMode)
+        let requests = await runtime.requests
+        XCTAssertEqual(requests, ["local|\(threadID)"])
+    }
+
     func testRepeatedCatalogReadObservesDatabaseChanges() async throws {
         let root = FileManager.default.temporaryDirectory
             .appending(path: UUID().uuidString, directoryHint: .isDirectory)

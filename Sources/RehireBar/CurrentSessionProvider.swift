@@ -187,6 +187,17 @@ struct SessionSnapshotAccumulator {
         let appliedSettings = settings
             .filter { $0.timestamp <= token.timestamp }
             .max(by: { $0.timestamp < $1.timestamp })
+        // Tier describes the current selection, independently of the last token
+        // count. A newer context/settings record with no tier clears old fast mode.
+        let latestContext = metadata.max(by: { $0.timestamp < $1.timestamp })
+        let latestSettings = settings.max(by: { $0.timestamp < $1.timestamp })
+        let serviceTier: String?
+        if let latestSettings,
+           latestSettings.timestamp >= (latestContext?.timestamp ?? .distantPast) {
+            serviceTier = latestSettings.payload.threadSettings.serviceTier
+        } else {
+            serviceTier = latestContext?.payload.serviceTier
+        }
         return CurrentSessionSnapshot(
             sessionID: candidate.file.path,
             threadID: CurrentSessionProvider.normalizedThreadID(identity)
@@ -197,8 +208,7 @@ struct SessionSnapshotAccumulator {
             effort: context?.payload.effort
                 ?? context?.payload.collaborationMode?.settings?.reasoningEffort
                 ?? appliedSettings?.payload.threadSettings.reasoningEffort,
-            serviceTier: context?.payload.serviceTier
-                ?? appliedSettings?.payload.threadSettings.serviceTier,
+            serviceTier: serviceTier,
             observedAt: token.timestamp,
             lastActivityAt: [token.timestamp, runtime?.observedAt].compactMap { $0 }.max(),
             activeSince: runtime?.activeSince,

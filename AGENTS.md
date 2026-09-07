@@ -38,32 +38,29 @@ available facts.
   checks separate from status polling; defaults must require a user-initiated
   check and installation. Never commit private update-signing seeds.
 
-## Local development and Git history
+## Scope and authorization
 
-- Before every update or debugging task, create a fresh version-scoped Git
-  worktree and a focused `codex/<version>-<topic>` branch from current `main`.
-  Inspect dirty worktrees first and preserve existing work; never develop directly
-  on `main` or silently carry unrelated changes into the new worktree.
-- Validate in that worktree, then integrate through a merge into `main`.
-  Prefer one coherent commit and a fast-forward merge; squash temporary fixups
-  before integration when needed. Do not rewrite published history.
-- Keep commits focused and reviewable. Exclude generated artifacts and private
-  diagnostics. Pushing and publishing require the user's requested scope.
+- Follow the user's current task and prior authorization. Resolve routine choices
+  within that scope; ask only when missing information materially affects the
+  outcome or an action needs authorization not already given.
+- Skill guidance supports the task; explicit user instructions take precedence
+  over it. If a file requires a pause, cite its path and exact rule and explain
+  the missing information or authorization instead of inventing an approval gate.
+- Editing and local validation do not authorize pushing, publishing, changing
+  installed applications, or sending messages or approval responses to other tasks.
+- Report changes, validation, and remaining limits concisely. Distinguish source
+  inspection, automated checks, and observed runtime or hardware behavior.
 
-## Required validation
+## Development and validation
 
-Run these commands after a change:
+Follow [the development workflow](CONTRIBUTING.md#development-workflow) for fresh
+version-scoped worktrees, local commits and integration into `main`. Keep existing
+work intact; do not edit on `main` or rewrite published history.
 
-```bash
-swift test
-swift build -c release
-bash scripts/build-app.sh
-bash scripts/verify-app.sh
-```
+Use [the validation requirements](CONTRIBUTING.md#validation) for the change type.
+Code and packaging changes require the full checks; documentation-only changes
+require diff, link, and instruction-consistency checks. Stop after the applicable
+checks pass unless new changes or failures justify more testing.
 
-Do not commit generated `dist/`, `.build/`, raw logs, or private screenshots.
-
-For local release acceptance, run `bash scripts/test-release.sh --build`. It
-verifies the ZIP, runs its extracted app under `release/test/`, and records the
-exact process path plus an optional live monitoring snapshot. Test from that
-release directory; do not replace Downloads or Applications copies as a test step.
+Read [approval integration](docs/APPROVAL-INTEGRATION.md) when changing that path,
+and [application updates](docs/UPDATES.md) before changing feeds or signing keys.

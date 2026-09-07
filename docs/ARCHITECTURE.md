@@ -99,7 +99,8 @@ Blocking status socket reads use a dedicated dispatch queue and two-second socke
 timeouts, keeping unavailable tasks from occupying Swift's cooperative workers.
 
 Focus is a metadata and polling hint, never a task-state observation or display
-priority. The order is `RUN`, `WAIT`, `ERR`, `SYNC`, then idle/unknown. Within a state,
+priority. Ordering follows the [status contract](integrations/AGENT-STATUS-INTERFACE.md#identity-and-multi-agent-rules),
+including the optional waiting-first preference. Within a state,
 active projects precede inactive projects, then project activity and task activity
 sort newest first. Complete identity only breaks ties. Projects are scoped by
 provider, host, and stable project ID (Codex falls back to its full working path).
@@ -139,13 +140,6 @@ Read [Model display interface v1](integrations/MODEL-DISPLAY-INTERFACE.md) to cu
 
 ## Validation boundary
 
-Run after every change:
-
-```bash
-swift test
-swift build -c release
-bash scripts/build-app.sh
-bash scripts/verify-app.sh
-```
+Follow the change-specific [validation requirements](../CONTRIBUTING.md#validation).
 
 Automated tests cover contracts, parsing, identity, freshness, cache behavior, refresh coordination, fail-closed actions, and presentation view models. A supported physical Touch Bar is still required to validate actual width, animation, Control Strip interaction, collapse/restore, app switching, and sleep/wake behavior.

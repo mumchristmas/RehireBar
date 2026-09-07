@@ -152,4 +152,4 @@ Foundation-only and can be used independently of AppKit.
 Tests cover alias precedence, provider isolation, case handling, custom rules,
 unknown variants, missing model/effort, raw-ID preservation, local-file replacement,
 invalid-file fallback, and propagation to rendered cards. Run the repository's
-[required validation](../../AGENTS.md) after changing the defaults or implementation.
+[required validation](../../CONTRIBUTING.md#validation) after changing the defaults or implementation.

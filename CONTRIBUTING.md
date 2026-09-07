@@ -11,31 +11,46 @@ Thank you for improving RehireBar.
 
 ## Development workflow
 
-1. Before every update or debugging task, create a fresh worktree from current
-   `main`, with a branch named `codex/<version>-<topic>`. Preserve any uncommitted
-   work in existing worktrees. For example:
+1. Before every update or debugging task, inspect existing worktrees and preserve
+   uncommitted work. Create a fresh worktree from current `main` on a focused
+   `codex/<version>-<topic>` branch; choose an unused branch and directory for this
+   task. Read-only reviews do not need a new worktree.
+2. Make the scoped change and complete [validation](#validation) in that worktree.
+3. Describe the change, user impact, validation, and known limitations. For local
+   implementation tasks, consolidate temporary fixups into one coherent commit
+   and merge the validated branch into `main` (prefer `git merge --ff-only`).
+   Honor a user request to leave changes uncommitted or unmerged. If `main` has
+   advanced, integrate it in the worktree and rerun affected checks before merging.
+   Never rewrite published history. Push or publish only within the user's
+   requested scope. Start the next update or debug task in a new worktree.
 
-   ```bash
-   git worktree add -b codex/0.5.5-respect-collapse ../RehireBar-0.5.5 main
-   cd ../RehireBar-0.5.5
-   ```
-2. Add or update tests for behavior changes.
-3. Run:
+## Validation
 
-   ```bash
-   swift test
-   swift build -c release
-   bash scripts/build-app.sh
-   bash scripts/verify-app.sh
-   ```
+For documentation or agent-instruction changes only, check `git diff --check`,
+local links, referenced paths and commands, and consistency with related guidance.
+No app build or launch is required unless the change also affects code, resources,
+build configuration, or executable examples.
 
-4. On physical Touch Bar hardware, manually check any affected presentation, sleep/wake, Control Strip, or approval behavior.
-5. Describe the change, user impact, validation, and known limitations in a pull
-   request or local review. Consolidate temporary fixups into one coherent commit,
-   then merge the validated branch into `main` (prefer `git merge --ff-only`).
-   If `main` has advanced, integrate it in the worktree and rerun affected checks
-   before merging. Never rewrite published history. Push or publish only when
-   requested. Start the next update or debug session in a new worktree.
+For code, resources, dependencies, or build/packaging changes, run:
+
+```bash
+swift test
+swift build -c release
+bash scripts/build-app.sh
+bash scripts/verify-app.sh
+```
+
+Add or update tests for changed behavior when they verify a meaningful invariant.
+Do not add tests that only mirror wording or implementation. Once the applicable
+checks pass, repeat or broaden them only for new changes, failures, or unresolved
+risks. On physical Touch Bar hardware, check affected presentation, sleep/wake,
+Control Strip, or approval behavior; report unavailable hardware checks as unverified.
+
+For local release acceptance, run `bash scripts/test-release.sh --build` using the
+extracted app under `release/test/`; details and side effects are described below.
+Do not replace Downloads or Applications copies as a test step.
+
+## Project conventions
 
 Keep pull requests focused. Do not include credentials, raw Codex sessions, generated build directories, or private machine paths.
 

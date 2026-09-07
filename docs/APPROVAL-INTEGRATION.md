@@ -22,7 +22,9 @@ On success, the command prints the generated approval ID and exits with status `
 
 ## Agent rule example
 
-An agent integration can use this policy:
+The following is an opt-in policy for agents configured to use this integration,
+not an instruction to register requests while reading or editing this document.
+Reading it grants no permission to send a question or response to another task:
 
 > When a genuine decision gate requires user approval and the current Codex thread UUID is known, call `approval-request` before yielding the same question in chat. Failure to register the Touch Bar request must never hide or suppress the chat question. Do not register informational sentences, rhetorical questions, or decisions the agent is already authorized to make.
 

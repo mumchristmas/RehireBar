@@ -4,6 +4,9 @@
 
 ### Added
 
+- Use native traffic-light icons and short Agent connection-status labels, with
+  detailed evidence explanations in tooltips.
+
 - Add an **Agents** menu with Codex and discovered status-file integrations,
   evidence-based connection status, and persistent per-Agent task/remote-task
   visibility preferences. Monitoring continues while cards are hidden; changing

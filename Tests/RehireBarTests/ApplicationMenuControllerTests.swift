@@ -22,7 +22,8 @@ final class ApplicationMenuControllerTests: XCTestCase {
         let menu = ApplicationMenuController.makeMenu(target: controller)
         let agents = try XCTUnwrap(menu.items.first { $0.title == "Agents" }?.submenu)
         let other = try XCTUnwrap(agents.items.first { $0.title == "other.agent" }?.submenu)
-        XCTAssertTrue(other.items[0].title.contains("Recent status"))
+        XCTAssertEqual(other.items[0].title, AgentMenuEntry.Status.current.title)
+        XCTAssertEqual(other.items[0].image?.name(), NSImage.statusAvailableName)
         let toggle = other.items[2]
         NSApplication.shared.sendAction(toggle.action!, to: toggle.target, from: toggle)
         XCTAssertFalse(settings.value(.showTasks, providerID: "other.agent"))
@@ -32,16 +33,24 @@ final class ApplicationMenuControllerTests: XCTestCase {
         XCTAssertEqual(shows, 0)
         controller.receiveAgentEntries([])
         controller.menuWillOpen(other)
-        XCTAssertTrue(other.items[0].title.contains("No status evidence"))
+        XCTAssertEqual(other.items[0].title, AgentMenuEntry.Status.unavailable.title)
+        XCTAssertEqual(other.items[0].image?.name(), NSImage.statusUnavailableName)
         XCTAssertEqual(other.items[2].state, .off)
+        controller.receiveAgentEntries([
+            .init(providerID: "other.agent", observedAt: Date.now.addingTimeInterval(-31))
+        ])
+        controller.menuWillOpen(other)
+        XCTAssertEqual(other.items[0].image?.name(), NSImage.statusPartiallyAvailableName)
+        XCTAssertNil(other.items[0].action)
+        XCTAssertFalse(other.items[0].isEnabled)
     }
 
     func testConnectionEvidenceExpiresAndDoesNotUseCatalogReadTime() {
         let now = Date.now
-        XCTAssertTrue(AgentMenuEntry(providerID: "agent", observedAt: now.addingTimeInterval(-31))
-            .status(at: now).contains("outdated"))
-        XCTAssertTrue(AgentMenuEntry(providerID: "agent", observedAt: now.addingTimeInterval(6))
-            .status(at: now).contains("Invalid"))
+        XCTAssertEqual(AgentMenuEntry(providerID: "agent", observedAt: now.addingTimeInterval(-31))
+            .status(at: now), .stale)
+        XCTAssertEqual(AgentMenuEntry(providerID: "agent", observedAt: now.addingTimeInterval(6))
+            .status(at: now), .invalidTime)
         let session = CurrentSessionSnapshot(
             sessionID: "catalog", usedTokens: 0, contextWindow: 0,
             model: nil, effort: nil, observedAt: now

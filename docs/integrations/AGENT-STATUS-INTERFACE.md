@@ -137,13 +137,15 @@ with no tasks. Reopen the menu to refresh discovery. A discovered entry remains
 available for the current run if its file disappears; entries with saved settings
 also remain available after restarting.
 
-Connection labels report evidence, not end-to-end transport acceptance:
-**Recent status received** means source evidence is within 30 seconds;
-**Status outdated** means that evidence has expired; **No status evidence** means
-none is available. Future timestamps beyond five seconds are invalid. External
+Connection indicators use native macOS traffic-light icons and short labels:
+green **Up to date** means source evidence is within 30 seconds; yellow **Stale**
+means that evidence has expired; red **No data** means none is available.
+Yellow **Invalid time** indicates a timestamp more than five seconds in the future.
+Hover over the status row for details. These labels describe status evidence, not
+end-to-end transport acceptance or a confirmed disconnection. External
 integrations use document `observedAt`; Codex uses task `executionStateObservedAt`,
 not the time the catalog was read. An idle Codex with no task evidence can therefore
-show no status evidence even while the desktop app is running. These labels do
+show **No data** even while the desktop app is running. These labels do
 not confirm navigation or approval delivery.
 
 Each Agent has independent **Show tasks in Touch Bar** and **Show remote tasks**

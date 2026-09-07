@@ -213,13 +213,25 @@ final class ApplicationMenuController: NSObject, ApplicationMenuManaging, NSMenu
                 menu.addItem(item)
             }
         }
-        menu.items[0].title = entry.status(at: .now)
+        let status = entry.status(at: .now)
+        menu.items[0].title = status.title
+        menu.items[0].image = Self.statusImage(status)
+        menu.items[0].toolTip = status.detail
         menu.items[0].isEnabled = false
         for item in menu.items {
             guard let values = item.representedObject as? [String], values.count == 2,
                   let option = AgentMenuSettings.Option(rawValue: values[1]) else { continue }
             item.state = agentSettings.value(option, providerID: providerID) ? .on : .off
         }
+    }
+
+    private static func statusImage(_ status: AgentMenuEntry.Status) -> NSImage? {
+        let name: NSImage.Name = switch status {
+        case .current: NSImage.statusAvailableName
+        case .stale, .invalidTime: NSImage.statusPartiallyAvailableName
+        case .unavailable: NSImage.statusUnavailableName
+        }
+        return NSImage(named: name)
     }
 
     @objc private func toggleAgentOption(_ item: NSMenuItem) {

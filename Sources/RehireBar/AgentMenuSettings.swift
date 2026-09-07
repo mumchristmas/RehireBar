@@ -55,13 +55,33 @@ struct AgentMenuEntry: Sendable {
 
     var title: String { providerID == "codex" ? "Codex" : providerID }
 
-    func status(at now: Date) -> String {
-        guard let observedAt else { return "Connection: No status evidence" }
+    enum Status: Equatable {
+        case current, stale, unavailable, invalidTime
+
+        var title: String {
+            switch self {
+            case .current: "Up to date"
+            case .stale: "Stale"
+            case .unavailable: "No data"
+            case .invalidTime: "Invalid time"
+            }
+        }
+
+        var detail: String {
+            switch self {
+            case .current: "Status received within the last 30 seconds."
+            case .stale: "The last status is over 30 seconds old."
+            case .unavailable: "No status evidence is available; the connection cannot be confirmed."
+            case .invalidTime: "The source timestamp is more than five seconds in the future."
+            }
+        }
+    }
+
+    func status(at now: Date) -> Status {
+        guard let observedAt else { return .unavailable }
         let age = now.timeIntervalSince(observedAt)
-        guard age >= -5 else { return "Connection: Invalid timestamp" }
-        return age <= SessionEvidenceFreshness.turnState
-            ? "Connection: Recent status received"
-            : "Connection: Status outdated"
+        guard age >= -5 else { return .invalidTime }
+        return age <= SessionEvidenceFreshness.turnState ? .current : .stale
     }
 
     /// A catalog read alone is not a live connection. Use source state evidence.

@@ -27,6 +27,26 @@ struct AgentStatusDirectoryProvider: SessionCollectionFetching, Sendable {
         self.now = now
     }
 
+    /// Includes healthy empty documents, which still prove the source published.
+    func fetchAgentEntries() async -> [AgentMenuEntry] {
+        let directories = directories
+        return await Task.detached(priority: .utility) {
+            var observations: [String: Date] = [:]
+            for directory in directories {
+                let files = (try? FileManager.default.contentsOfDirectory(
+                    at: directory, includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )) ?? []
+                for file in files where file.pathExtension.lowercased() == "json" {
+                    guard let document = Self.document(in: file, directory: directory),
+                          let id = Self.nonempty(document.providerID) else { continue }
+                    observations[id] = max(observations[id] ?? .distantPast, document.observedAt)
+                }
+            }
+            return observations.map { AgentMenuEntry(providerID: $0.key, observedAt: $0.value) }
+        }.value
+    }
+
     func fetchSessions() async throws -> [CurrentSessionSnapshot] {
         let directories = directories
         let referenceDate = now()
@@ -63,14 +83,20 @@ struct AgentStatusDirectoryProvider: SessionCollectionFetching, Sendable {
         }
     }
 
-    private static func sessions(in file: URL, directory: URL, now: Date) -> [CurrentSessionSnapshot] {
+    private static func document(in file: URL, directory: URL) -> AgentStatusDocument? {
         guard let data = BoundedJSONFileReader.read(
             file, in: directory, maximumBytes: maximumDocumentBytes
         ),
               let document = try? decoder.decode(AgentStatusDocument.self, from: data),
               document.schemaVersion == AgentStatusDocument.currentSchemaVersion,
-              let providerID = nonempty(document.providerID)
-        else { return [] }
+              nonempty(document.providerID) != nil
+        else { return nil }
+        return document
+    }
+
+    private static func sessions(in file: URL, directory: URL, now: Date) -> [CurrentSessionSnapshot] {
+        guard let document = document(in: file, directory: directory),
+              let providerID = nonempty(document.providerID) else { return [] }
 
         return document.tasks.compactMap { task in
             guard let scopeID = nonempty(task.identity.scopeID),

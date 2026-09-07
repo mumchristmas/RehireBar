@@ -33,6 +33,8 @@ final class RehireBarApplication {
         applicationMenu: (any ApplicationMenuManaging)? = nil
     ) -> RehireBarApplication {
         let defaults = UserDefaults.standard
+        let agentSettings = AgentMenuSettings(defaults: defaults)
+        let agentDirectory = AgentStatusDirectoryProvider()
         let selectedThread = SelectedThreadState(
             initialThreadID: defaults.string(forKey: SelectedThreadTracker.persistedThreadIDKey)
         )
@@ -68,7 +70,7 @@ final class RehireBarApplication {
         )
         let allSessions = CombinedSessionCollectionProvider(providers: [
             sessionCatalogProvider,
-            AgentStatusDirectoryProvider(),
+            agentDirectory,
         ])
         let statusProvider = UsageOnlyStatusProvider(usage: usageProvider)
         let startupStatusProvider = FocusedSessionStatusProvider(
@@ -97,6 +99,7 @@ final class RehireBarApplication {
             dataChangeMonitor: CodexDataChangeMonitor(),
             wakeMonitor: wakeMonitor,
             logger: { NSLog("%@", $0) },
+            presentationFilter: { agentSettings.applying(to: $0) },
             sortMode: { SessionSortMode(preference: defaults.string(forKey: SessionSortMode.preferenceKey)) }
         )
         let approvalCoordinator = (presenter as? TouchBarPresenter).map {
@@ -109,7 +112,13 @@ final class RehireBarApplication {
                 defaults.set(mode.rawValue, forKey: SessionSortMode.preferenceKey)
                 coordinator?.refreshTaskOrder()
             },
-            updater: SparkleApplicationUpdater()
+            updater: SparkleApplicationUpdater(),
+            agentSettings: agentSettings,
+            agentEntries: { [weak coordinator] in
+                let external = await agentDirectory.fetchAgentEntries()
+                return [AgentMenuEntry.codex(sessions: coordinator?.agentMenuSessions ?? [])] + external
+            },
+            onAgentSettingsChange: { [weak coordinator] in coordinator?.refreshAgentPresentation() }
         )
         return RehireBarApplication(
             coordinator: coordinator,

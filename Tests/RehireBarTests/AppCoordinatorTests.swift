@@ -5,6 +5,49 @@ import XCTest
 
 @MainActor
 final class AppCoordinatorTests: XCTestCase {
+    func testAgentVisibilityRetainsCollectionAndRestoresWithoutOpeningBar() async {
+        let suite = "AgentVisibilityTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AgentMenuSettings(defaults: defaults)
+        let now = Date.now
+        let identities: [(String, String, Bool)] = [
+            ("codex", "local", false), ("codex", "remote", true),
+            ("other.agent", "local", false)
+        ]
+        let tasks = identities.map { provider, scope, remote in
+            CurrentSessionSnapshot(
+                sessionID: "\(provider)-\(scope)", threadID: "same-id",
+                usedTokens: 0, contextWindow: 0, model: nil, effort: nil,
+                observedAt: now, isRemote: remote, providerID: provider,
+                hostID: scope, executionState: .working
+            )
+        }
+        let presenter = FakeTouchBarStatusPresenter()
+        let coordinator = AppCoordinator(
+            activityMonitor: FakeActivityMonitor(),
+            statusFetcher: FakeStatusFetcher(results: [.init(usage: nil, session: tasks[1], sessions: tasks)]),
+            presenter: presenter, scheduler: FakeRefreshScheduler(),
+            presentationFilter: { settings.applying(to: $0) }
+        )
+        coordinator.start()
+        await waitUntil { presenter.statuses.count == 1 }
+        settings.toggle(.showRemoteTasks, providerID: "codex")
+        coordinator.refreshAgentPresentation()
+        XCTAssertEqual(presenter.statuses.last?.sessions.count, 2)
+        XCTAssertNil(presenter.statuses.last?.session)
+        settings.toggle(.showTasks, providerID: "other.agent")
+        coordinator.refreshAgentPresentation()
+        XCTAssertEqual(presenter.statuses.last?.sessions.map(\.providerID), ["codex"])
+        XCTAssertEqual(coordinator.agentMenuSessions.count, 3)
+        settings.toggle(.showRemoteTasks, providerID: "codex")
+        settings.toggle(.showTasks, providerID: "other.agent")
+        coordinator.refreshAgentPresentation()
+        XCTAssertEqual(presenter.statuses.last?.sessions.count, 3)
+        XCTAssertEqual(presenter.representCount, 0)
+        coordinator.stop()
+    }
+
     func testOrderPreferenceReordersRetainedTasksAndDiagnosticsWithoutRestoringBar() async {
         let suiteName = "RehireBarTests.SortMode.\(UUID().uuidString)"
         let preferences = UserDefaults(suiteName: suiteName)!

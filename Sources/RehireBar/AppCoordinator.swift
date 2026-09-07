@@ -85,6 +85,7 @@ final class AppCoordinator {
     private let wakeMonitor: any WakeMonitoring
     private let logger: @MainActor (String) -> Void
     private let now: @MainActor () -> Date
+    private let presentationFilter: @MainActor (TouchBarStatusSnapshot) -> TouchBarStatusSnapshot
     private let sortMode: @MainActor () -> SessionSortMode
 
     private var refreshCancellation: (any RefreshCancellation)?
@@ -117,6 +118,7 @@ final class AppCoordinator {
         wakeMonitor: any WakeMonitoring = NoopWakeMonitor(),
         logger: @escaping @MainActor (String) -> Void = { _ in },
         now: @escaping @MainActor () -> Date = { .now },
+        presentationFilter: @escaping @MainActor (TouchBarStatusSnapshot) -> TouchBarStatusSnapshot = { $0 },
         sortMode: @escaping @MainActor () -> SessionSortMode = { .runningFirst }
     ) {
         self.activityMonitor = activityMonitor
@@ -133,6 +135,7 @@ final class AppCoordinator {
         self.logger = logger
         self.now = now
         self.sortMode = sortMode
+        self.presentationFilter = presentationFilter
         if let binding = presenter as? any ManualRefreshBinding {
             binding.onManualRefresh = { [weak self] in
                 self?.refreshNow(preserveRenderedStatusOnFailure: true)
@@ -177,7 +180,7 @@ final class AppCoordinator {
         if cached.hasDisplayValues {
             let status = TouchBarStatusSnapshot(cached: cached)
             lastStatus = status
-            presenter.showStatus(status)
+            presenter.showStatus(presentationFilter(status))
         }
         selectedThreadMonitor.start { [weak self] in
             guard let self else { return }
@@ -335,7 +338,7 @@ final class AppCoordinator {
                         let status = previous.markingUsageStale()
                         self.lastStatus = status
                         self.statusPublisher.publish(status)
-                        self.presenter.showStatus(status)
+                        self.presenter.showStatus(self.presentationFilter(status))
                     } else {
                         self.presenter.showUnavailable()
                     }
@@ -468,7 +471,7 @@ final class AppCoordinator {
         ).orderingSessions(by: sortMode())
         lastStatus = status
         statusPublisher.publish(status)
-        presenter.showStatus(status)
+        presenter.showStatus(presentationFilter(status))
     }
 
     private func expireRetainedEvidence() {
@@ -484,7 +487,16 @@ final class AppCoordinator {
         guard status != lastStatus else { return }
         self.lastStatus = status
         statusPublisher.publish(status)
-        presenter.showStatus(status)
+        presenter.showStatus(presentationFilter(status))
+    }
+
+    var agentMenuSessions: [CurrentSessionSnapshot] { lastStatus?.sessions ?? [] }
+
+    func refreshAgentPresentation() {
+        guard hasStarted else { return }
+        expireRetainedEvidence()
+        guard let lastStatus else { return }
+        presenter.showStatus(presentationFilter(lastStatus).orderingSessions(by: sortMode()))
     }
 
     /// A deliberate order change updates retained facts immediately. It neither

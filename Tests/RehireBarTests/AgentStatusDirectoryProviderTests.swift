@@ -5,6 +5,22 @@ import XCTest
 @testable import RehireBar
 
 final class AgentStatusDirectoryProviderTests: XCTestCase {
+    func testAgentDiscoveryIncludesEmptyDocumentsAndDropsRemovedSources() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let now = Date.now
+        let file = directory.appending(path: "empty.json")
+        try write(AgentStatusDocument(providerID: "empty-agent", observedAt: now, tasks: []), to: file)
+        try Data("invalid".utf8).write(to: directory.appending(path: "invalid.json"))
+        let provider = AgentStatusDirectoryProvider(directory: directory)
+        let entries = await provider.fetchAgentEntries()
+        XCTAssertEqual(entries.map(\.providerID), ["empty-agent"])
+        XCTAssertNotNil(entries.first?.observedAt)
+        try FileManager.default.removeItem(at: file)
+        let removed = await provider.fetchAgentEntries()
+        XCTAssertTrue(removed.isEmpty)
+    }
+
     func testAcceptsFractionalISO8601Timestamps() async throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -47,6 +63,8 @@ final class AgentStatusDirectoryProviderTests: XCTestCase {
             .fetchSessions()
 
         XCTAssertEqual(sessions.map(\.providerID), ["healthy"])
+        let entries = await AgentStatusDirectoryProvider(directory: directory).fetchAgentEntries()
+        XCTAssertEqual(entries.map(\.providerID), ["healthy"])
     }
 
     func testRejectsSymbolicLinkProviderDirectory() async throws {

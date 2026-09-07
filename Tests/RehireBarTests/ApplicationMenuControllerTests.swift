@@ -4,6 +4,51 @@ import XCTest
 
 @MainActor
 final class ApplicationMenuControllerTests: XCTestCase {
+    func testAgentSettingsRemainScopedAndMissingSourceLosesEvidence() throws {
+        let suite = "AgentMenuTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AgentMenuSettings(defaults: defaults)
+        var shows = 0
+        var changes = 0
+        let controller = ApplicationMenuController(
+            onShow: { shows += 1 }, agentSettings: settings,
+            onAgentSettingsChange: { changes += 1 }
+        )
+        controller.receiveAgentEntries([
+            .init(providerID: "codex", observedAt: .now),
+            .init(providerID: "other.agent", observedAt: .now)
+        ])
+        let menu = ApplicationMenuController.makeMenu(target: controller)
+        let agents = try XCTUnwrap(menu.items.first { $0.title == "Agents" }?.submenu)
+        let other = try XCTUnwrap(agents.items.first { $0.title == "other.agent" }?.submenu)
+        XCTAssertTrue(other.items[0].title.contains("Recent status"))
+        let toggle = other.items[2]
+        NSApplication.shared.sendAction(toggle.action!, to: toggle.target, from: toggle)
+        XCTAssertFalse(settings.value(.showTasks, providerID: "other.agent"))
+        XCTAssertTrue(settings.value(.showTasks, providerID: "codex"))
+        XCTAssertFalse(AgentMenuSettings(defaults: defaults).value(.showTasks, providerID: "other.agent"))
+        XCTAssertEqual(changes, 1)
+        XCTAssertEqual(shows, 0)
+        controller.receiveAgentEntries([])
+        controller.menuWillOpen(other)
+        XCTAssertTrue(other.items[0].title.contains("No status evidence"))
+        XCTAssertEqual(other.items[2].state, .off)
+    }
+
+    func testConnectionEvidenceExpiresAndDoesNotUseCatalogReadTime() {
+        let now = Date.now
+        XCTAssertTrue(AgentMenuEntry(providerID: "agent", observedAt: now.addingTimeInterval(-31))
+            .status(at: now).contains("outdated"))
+        XCTAssertTrue(AgentMenuEntry(providerID: "agent", observedAt: now.addingTimeInterval(6))
+            .status(at: now).contains("Invalid"))
+        let session = CurrentSessionSnapshot(
+            sessionID: "catalog", usedTokens: 0, contextWindow: 0,
+            model: nil, effort: nil, observedAt: now
+        )
+        XCTAssertNil(AgentMenuEntry.codex(sessions: [session]).observedAt)
+    }
+
     func testMenuOffersExplicitShowAndQuitCommands() {
         var showCount = 0
         var quitCount = 0
@@ -17,7 +62,7 @@ final class ApplicationMenuControllerTests: XCTestCase {
 
         XCTAssertEqual(
             menu.items.filter { !$0.isSeparatorItem }.map(\.title),
-            ["RehireBar 0.5.3 (15)", "Check for Updates…", "Show Touch Bar", "Task order", "Quit RehireBar"]
+            ["RehireBar 0.5.3 (15)", "Check for Updates…", "Show Touch Bar", "Agents", "Task order", "Quit RehireBar"]
         )
         XCTAssertEqual(menu.items.last?.keyEquivalent, "q")
         XCTAssertTrue(menu.items.allSatisfy { $0.isSeparatorItem || $0.submenu != nil || $0.target === controller })

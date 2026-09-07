@@ -128,3 +128,26 @@ change requires a new `schemaVersion`; the app ignores versions it does not supp
 The model display policy owns model/effort abbreviation. The UI is width-adaptive
 and owns color, animation, and omission rules. Providers must not pre-format
 strings for a particular Touch Bar width.
+
+## Application menu
+
+The menu-bar icon exposes **Agents → Codex / <providerID>**. Codex is built in;
+other entries are discovered from valid status documents, including documents
+with no tasks. Reopen the menu to refresh discovery. A discovered entry remains
+available for the current run if its file disappears; entries with saved settings
+also remain available after restarting.
+
+Connection labels report evidence, not end-to-end transport acceptance:
+**Recent status received** means source evidence is within 30 seconds;
+**Status outdated** means that evidence has expired; **No status evidence** means
+none is available. Future timestamps beyond five seconds are invalid. External
+integrations use document `observedAt`; Codex uses task `executionStateObservedAt`,
+not the time the catalog was read. An idle Codex with no task evidence can therefore
+show no status evidence even while the desktop app is running. These labels do
+not confirm navigation or approval delivery.
+
+Each Agent has independent **Show tasks in Touch Bar** and **Show remote tasks**
+preferences, saved locally under `agentPresentationSettings`. Both default to on.
+These filter presentation only: collection, evidence expiry, and diagnostic output
+continue to include hidden tasks. Changes apply immediately without presenting a
+collapsed Touch Bar. The remote preference is retained while all tasks are hidden.

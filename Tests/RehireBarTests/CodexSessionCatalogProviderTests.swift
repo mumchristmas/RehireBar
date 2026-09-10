@@ -1096,6 +1096,39 @@ final class CodexSessionCatalogProviderTests: XCTestCase {
         XCTAssertEqual(byHost[pairedHost]?.executionState, .unknown)
     }
 
+    func testRemoteTurnTimerSurvivesRefreshAndResetsOnlyForNewTurn() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let databaseURL = root.appending(path: "codex-dev.db")
+        try makeCatalog(at: databaseURL)
+        let remoteID = "10000000-0000-4000-8000-000000000003"
+        try insert("INSERT INTO local_thread_catalog VALUES ('remote-ssh-codex-managed:TestHost', '\(remoteID)', 'Remote', '/tmp/remote', 190, 190, 0);", into: databaseURL)
+        let runtime = FakeDesktopSnapshotFetcher(snapshot: .init(
+            usedTokens: nil, contextWindow: nil, model: nil, effort: nil, executionState: nil))
+        let provider = CodexSessionCatalogProvider(
+            root: root, databaseURL: databaseURL, desktopSnapshots: runtime,
+            now: { Date(timeIntervalSince1970: 220) }, minimumRuntimeReadInterval: 0)
+        for (observed, start, state, compacting) in [
+            (210.0, 100.0 as Double?, SessionExecutionState.working, false),
+            (211, 100, .working, true),
+            (212, 100, .waiting, false),
+            (213, 100, .working, false),
+            (214, nil, .idle, false),
+            (215, 210, .working, false),
+            (220, nil, .working, false),
+        ] {
+            await runtime.setSnapshot(.init(
+                observedAt: Date(timeIntervalSince1970: observed), usedTokens: nil,
+                contextWindow: nil, model: nil, effort: nil, executionState: state,
+                isCompactingContext: compacting, activeSince: start.map(Date.init(timeIntervalSince1970:))))
+            let sessions = try await provider.fetchSessions()
+            let session = try XCTUnwrap(sessions.first)
+            XCTAssertEqual(session.executionState, state)
+            XCTAssertEqual(session.activeSince, state == .working ? start.map(Date.init(timeIntervalSince1970:)) : nil)
+        }
+    }
+
     private func makeCatalog(at url: URL) throws {
         var database: OpaquePointer?
         guard sqlite3_open(url.path, &database) == SQLITE_OK, let database else {
@@ -1153,10 +1186,12 @@ final class CodexSessionCatalogProviderTests: XCTestCase {
 }
 
 private actor FakeDesktopSnapshotFetcher: DesktopThreadSnapshotFetching {
-    private let snapshot: CodexDesktopThreadSnapshot
+    private var snapshot: CodexDesktopThreadSnapshot
     private(set) var requests: [String] = []
 
     init(snapshot: CodexDesktopThreadSnapshot) { self.snapshot = snapshot }
+
+    func setSnapshot(_ snapshot: CodexDesktopThreadSnapshot) { self.snapshot = snapshot }
 
     func fetchThreadSnapshot(
         threadID: String,
@@ -1173,7 +1208,8 @@ private actor FakeDesktopSnapshotFetcher: DesktopThreadSnapshotFetching {
             effort: snapshot.effort,
             serviceTier: snapshot.serviceTier,
             executionState: snapshot.executionState,
-            isCompactingContext: snapshot.isCompactingContext
+            isCompactingContext: snapshot.isCompactingContext,
+            activeSince: snapshot.activeSince
         )
     }
 }

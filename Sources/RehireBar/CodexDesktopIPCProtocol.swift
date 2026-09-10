@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 protocol DesktopThreadSnapshotFetching: Sendable {
     func fetchThreadSnapshot(
@@ -43,6 +44,7 @@ struct CodexDesktopThreadSnapshot: Equatable, Sendable {
     let serviceTier: String?
     let executionState: SessionExecutionState?
     let isCompactingContext: Bool?
+    let activeSince: Date?
 
     init(
         identity: TaskIdentity = TaskIdentity(hostID: "local", threadID: "unknown"),
@@ -54,7 +56,8 @@ struct CodexDesktopThreadSnapshot: Equatable, Sendable {
         effort: String?,
         serviceTier: String? = nil,
         executionState: SessionExecutionState?,
-        isCompactingContext: Bool? = nil
+        isCompactingContext: Bool? = nil,
+        activeSince: Date? = nil
     ) {
         self.identity = identity
         self.source = source
@@ -66,6 +69,7 @@ struct CodexDesktopThreadSnapshot: Equatable, Sendable {
         self.serviceTier = serviceTier
         self.executionState = executionState
         self.isCompactingContext = isCompactingContext
+        self.activeSince = activeSince
     }
 }
 
@@ -272,7 +276,8 @@ enum CodexDesktopIPCMessageFactory {
             effort: fields.effort ?? fields.fallbackEffort,
             serviceTier: currentServiceTier(in: state),
             executionState: executionState(from: fields.runtimeStatus),
-            isCompactingContext: fields.isCompactingContext
+            isCompactingContext: fields.isCompactingContext,
+            activeSince: activeTurnStart(in: state, observedAt: observedAt)
         )
     }
 
@@ -315,6 +320,34 @@ enum CodexDesktopIPCMessageFactory {
         case "idle", "notloaded": return .idle
         default: return nil
         }
+    }
+
+    /// Desktop stores turn timestamps in milliseconds, independently of item
+    /// progress and the time this snapshot was read. Only the latest turn counts.
+    private static func activeTurnStart(in state: [String: Any], observedAt: Date) -> Date? {
+        let turn: [String: Any]?
+        if let turnHistory = state["turnHistory"] as? [String: Any],
+           turnHistory["kind"] as? String == "canonical" {
+            guard let history = turnHistory["history"] as? [String: Any],
+                  let islands = history["islands"] as? [[String: Any]],
+                  let entities = history["entitiesByKey"] as? [String: Any],
+                  let latestIsland = islands.last,
+                  let boundary = latestIsland["newerBoundary"] as? [String: Any],
+                  boundary["status"] as? String == "exhausted",
+                  let entries = latestIsland["entries"] as? [[String: Any]],
+                  let key = entries.last?["value"] as? String else { return nil }
+            // Only a known live tail can supply current-turn timing. Historical
+            // pages and entity dictionary order must not choose an earlier turn.
+            turn = entities[key] as? [String: Any]
+        } else {
+            turn = (state["turns"] as? [[String: Any]])?.last
+        }
+        guard let turn, turn["status"] as? String == "inProgress",
+              let milliseconds = turn["turnStartedAtMs"] as? NSNumber,
+              CFGetTypeID(milliseconds) != CFBooleanGetTypeID(),
+              milliseconds.doubleValue.isFinite, milliseconds.doubleValue > 0 else { return nil }
+        let start = Date(timeIntervalSince1970: milliseconds.doubleValue / 1_000)
+        return start <= observedAt ? start : nil
     }
 
     private static func currentServiceTier(in state: [String: Any]) -> String? {

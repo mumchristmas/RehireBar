@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Measure remote Codex task elapsed time from the current conversation turn start,
+  preserving the timer across reasoning, tool calls, and context compaction.
+  Status refresh timestamps no longer masquerade as turn start times.
+
 ## 0.5.7 — 2026-09-07
 
 ### Changed

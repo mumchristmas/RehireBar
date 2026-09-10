@@ -426,7 +426,7 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
                 runtime.model != nil || runtime.effort != nil || runtime.serviceTier != nil
             ) ? runtime.observedAt : snapshot.modelObservedAt,
             activeSince: executionState == .working
-                ? (snapshot.activeSince ?? runtime.observedAt) : nil,
+                ? ((runtimeCanSupplyState ? runtime.activeSince : nil) ?? snapshot.activeSince) : nil,
             isCompactingContext: runtimeCanSupplyState
                 ? (runtime.isCompactingContext ?? false) : snapshot.isCompactingContext,
             projectName: snapshot.projectName,

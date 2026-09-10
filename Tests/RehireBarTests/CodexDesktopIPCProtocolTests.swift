@@ -3,6 +3,38 @@ import XCTest
 @testable import RehireBar
 
 final class CodexDesktopIPCProtocolTests: XCTestCase {
+    func testTurnTimerUsesLatestTurnBoundaryAcrossProgressAndHistoryLayouts() throws {
+        let old: [String: Any] = ["turnId": "old", "status": "inProgress", "turnStartedAtMs": 100_000]
+        let current: [String: Any] = ["turnId": "current", "status": "inProgress", "turnStartedAtMs": 150_000,
+                                    "items": [["type": "reasoning", "startedAtMs": 190_000]]]
+        let legacy: [String: Any] = ["turns": [old, current]]
+        let canonical: [String: Any] = ["turns": [old], "turnHistory": ["kind": "canonical", "history": [
+            "islands": [["entries": [["value": "old"]]], ["entries": [["value": "current"]], "newerBoundary": ["status": "exhausted"]]],
+            "entitiesByKey": ["current": current, "old": old]]]]
+        for state in [legacy, canonical] {
+            for observed in [200.0, 220.0] {
+                XCTAssertEqual(try timerSnapshot(state, observed: observed).activeSince,
+                               Date(timeIntervalSince1970: 150))
+            }
+        }
+        for value in [NSNull(), true, -1, 300_000, "150000"] as [Any] {
+            XCTAssertNil(try timerSnapshot(["turns": [old, ["status": "inProgress", "turnStartedAtMs": value]]]).activeSince)
+        }
+        XCTAssertNil(try timerSnapshot(["turns": [old, ["status": "completed", "turnStartedAtMs": 150_000]]]).activeSince)
+        XCTAssertNil(try timerSnapshot([:]).activeSince)
+        XCTAssertEqual(try timerSnapshot(["turns": [["status": "inProgress", "turnStartedAtMs": 180_000]]]).activeSince,
+                       Date(timeIntervalSince1970: 180))
+    }
+
+    private func timerSnapshot(_ state: [String: Any], observed: TimeInterval = 200) throws -> CodexDesktopThreadSnapshot {
+        try XCTUnwrap(CodexDesktopIPCMessageFactory.threadSnapshot(in: [
+            "type": "broadcast", "method": "thread-stream-state-changed",
+            "params": ["conversationId": "thread-id", "hostId": "remote-host",
+                       "change": ["type": "snapshot", "conversationState": state]]
+        ], identity: TaskIdentity(hostID: "remote-host", threadID: "thread-id"),
+           observedAt: Date(timeIntervalSince1970: observed)))
+    }
+
     func testCurrentServiceTierNeverComesFromHistory() throws {
         for current in ["null", "\"default\"", "\"priority\""] {
             let payload = Data("""

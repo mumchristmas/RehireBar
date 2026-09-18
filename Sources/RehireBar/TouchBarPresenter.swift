@@ -30,7 +30,11 @@ enum TouchBarLayout {
     static let sessionPreferredWidth: CGFloat = 607
     static let compactControlStripItemWidth: CGFloat = 44
     static let compactControlStripBaselineWidth: CGFloat = 160
-    static let sessionPreferredPriority = NSLayoutConstraint.Priority(600)
+    // AppKit measures fittingSize at fittingSizeCompression (50). A stronger
+    // preference becomes the item's admission minimum and can evict every task.
+    static let sessionPreferredPriority = NSLayoutConstraint.Priority(
+        NSLayoutConstraint.Priority.fittingSizeCompression.rawValue - 1
+    )
     static let mainItemIdentifiers = metricItemIdentifiers(primaryAvailable: true)
 
     static func metricItemIdentifiers(primaryAvailable: Bool) -> [NSTouchBarItem.Identifier] {
@@ -770,8 +774,16 @@ private final class SessionScrubberView: NSScrubber, NSScrubberDataSource, NSScr
         scrollItem(at: index, to: .leading)
     }
 
+    override func layout() {
+        super.layout()
+        if bounds.width > 0 { setViewportWidth(bounds.width) }
+    }
+
     func setViewportWidth(_ width: CGFloat) {
-        viewportWidth = max(TouchBarLayout.sessionMinimumWidth, width)
+        // The geometry estimate is useful before attachment; once laid out,
+        // only the actual allocation can tell us how many readable cards fit.
+        let allocatedWidth = bounds.width > 0 ? bounds.width : width
+        viewportWidth = max(TouchBarLayout.sessionMinimumWidth, allocatedWidth)
         guard updateVisibleCardCount() else { return }
         reloadData()
         refocusCurrentThread()

@@ -186,7 +186,9 @@ final class TouchBarPresenterTests: XCTestCase {
                 makeItemForIdentifier: TouchBarLayout.sessionIdentifier
             ) as? NSCustomTouchBarItem
         )
-        let constraints = try XCTUnwrap(item.view).constraints
+        let view = try XCTUnwrap(item.view)
+        XCTAssertEqual(view.fittingSize.width, TouchBarLayout.sessionMinimumWidth)
+        let constraints = view.constraints
         let minimum = constraints.first {
             $0.firstAttribute == .width && $0.relation == .greaterThanOrEqual
         }
@@ -396,6 +398,15 @@ final class TouchBarPresenterTests: XCTestCase {
         XCTAssertEqual(scrubber.dataSource?.numberOfItems(for: scrubber), 3)
         XCTAssertEqual(layout.numberOfVisibleItems, 3)
         XCTAssertEqual(scrubber.selectedIndex, 0)
+
+        for (width, count) in [(CGFloat(302), 1), (CGFloat(447), 2), (CGFloat(607), 3)] {
+            scrubber.frame = NSRect(x: 0, y: 0, width: width, height: 30)
+            scrubber.layout()
+            presenter.showStatus(.init(usage: usage, session: sessions[0], sessions: sessions))
+            let resized = try XCTUnwrap(scrubber.scrubberLayout as? NSScrubberProportionalLayout)
+            XCTAssertEqual(resized.numberOfVisibleItems, count)
+            XCTAssertEqual(scrubber.dataSource?.numberOfItems(for: scrubber), 3)
+        }
     }
 
     func testModelHasNoStandaloneItemBecauseEachSessionOwnsItsModel() {

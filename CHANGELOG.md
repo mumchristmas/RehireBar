@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Keep task cards visible when Touch Bar space shrinks by exposing their readable
+  minimum width to AppKit and adapting the visible card count to the actual allocation.
+
 - Measure remote Codex task elapsed time from the current conversation turn start,
   preserving the timer across reasoning, tool calls, and context compaction.
   Status refresh timestamps no longer masquerade as turn start times.

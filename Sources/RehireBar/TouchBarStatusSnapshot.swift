@@ -154,7 +154,10 @@ private enum SessionSnapshotMerger {
             contextWindow: currentHasContext ? current.contextWindow : match.contextWindow,
             model: currentHasModel ? current.model : match.model,
             effort: currentHasModel ? current.effort : match.effort,
-            serviceTier: currentHasModel ? current.serviceTier : match.serviceTier,
+            // The collection already reconciles rollout and runtime settings.
+            // A newer focused token/model observation is not a tier change and
+            // must neither clear fast mode nor restore an older selection.
+            serviceTier: match.serviceTier,
             observedAt: max(current.observedAt, match.observedAt),
             lastActivityAt: [current.lastActivityAt, match.lastActivityAt].compactMap { $0 }.max(),
             contextObservedAt: currentHasContext

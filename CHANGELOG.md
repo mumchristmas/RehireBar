@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Keep the fast-mode bolt stable while reasoning progress and desktop status
+  refreshes alternate. New token counts no longer overwrite the resolved service
+  tier, including when fast mode has been turned off.
+
 ## 0.5.8 — 2026-09-19
 
 ### Fixed

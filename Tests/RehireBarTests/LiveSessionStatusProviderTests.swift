@@ -35,6 +35,51 @@ final class LiveSessionStatusProviderTests: XCTestCase {
         XCTAssertEqual(fallback.sessions.map(\.identity), [current.identity])
     }
 
+    func testFastModeStaysOnAsRolloutProgressAndDesktopRefreshAlternate() async throws {
+        // Progress records do not carry Desktop's current service tier. Their
+        // newer token/model timestamp must not clear the catalog's resolved tier.
+        for (progressAt, desktopAt) in [(201.0, 200.0), (201, 204), (206, 204)] {
+            let current = tierSnapshot(tier: nil, observed: progressAt, usedTokens: 120)
+            let catalog = tierSnapshot(tier: "priority", observed: desktopAt, usedTokens: 100)
+            let status = try await LiveSessionStatusProvider(
+                session: StubLiveSessionFetcher(result: .success(current)),
+                sessions: StubLiveSessionCollectionFetcher(result: .success([catalog])),
+                now: { Date(timeIntervalSince1970: 220) }
+            ).fetchStatus()
+
+            XCTAssertEqual(status.session?.serviceTier, "priority")
+            XCTAssertEqual(status.session?.isFastMode, true)
+            XCTAssertEqual(status.session?.usedTokens, progressAt > desktopAt ? 120 : 100)
+            XCTAssertEqual(status.sessions.map(\.identity), [catalog.identity])
+        }
+    }
+
+    func testResolvedFastModeOffSurvivesNewerHistoricalRolloutProgress() async throws {
+        for tier in [nil, "default"] as [String?] {
+            let current = tierSnapshot(tier: "priority", observed: 206, usedTokens: 120)
+            let catalog = tierSnapshot(tier: tier, observed: 204, usedTokens: 100)
+            let status = try await LiveSessionStatusProvider(
+                session: StubLiveSessionFetcher(result: .success(current)),
+                sessions: StubLiveSessionCollectionFetcher(result: .success([catalog])),
+                now: { Date(timeIntervalSince1970: 220) }
+            ).fetchStatus()
+
+            XCTAssertEqual(status.session?.serviceTier, tier)
+            XCTAssertEqual(status.session?.isFastMode, false)
+            XCTAssertEqual(status.session?.usedTokens, 120)
+        }
+    }
+
+    private func tierSnapshot(tier: String?, observed: TimeInterval, usedTokens: Int) -> CurrentSessionSnapshot {
+        CurrentSessionSnapshot(
+            sessionID: "local-rollout", threadID: "10000000-0000-4000-8000-000000000002",
+            usedTokens: usedTokens, contextWindow: 1_000,
+            model: "gpt-6-astra", effort: "high", serviceTier: tier,
+            observedAt: Date(timeIntervalSince1970: observed),
+            executionState: .working
+        )
+    }
+
     func testSameThreadIDOnDifferentHostsDoesNotCrossMergeRuntimeFields() async throws {
         let threadID = "10000000-0000-4000-8000-000000000002"
         let selectedPlaceholder = CurrentSessionSnapshot(

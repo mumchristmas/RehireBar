@@ -39,6 +39,7 @@ API and hardware validation effort.
 
 | Check | Current evidence |
 | --- | --- |
+| Constrained task-area recovery | User confirmed restored task cards with local commit `bffb3f2` (0.5.7 build 18, included in 0.5.8), macOS 27.0.0, MacBookPro17,1, native arm64; desktop 26.915.31029 (9771), CLI 0.155.0-alpha.9. This confirms task display, not navigation or sleep/wake. |
 | Apple silicon task display and independent monitoring | Manually tested with the 0.5.3 release package on a physical Touch Bar. |
 | Automated regressions and release archives | [0.5.3 CI](https://github.com/mumchristmas/RehireBar/actions/runs/34022349228) passed 262 XCTest cases on both Apple silicon and Intel macOS runners and checked their native release archives. |
 | Three RUN tasks plus one WAIT | Regression case for both ordering modes; waiting-first puts WAIT ahead of the three RUN cards. |

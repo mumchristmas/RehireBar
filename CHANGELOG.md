@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.8 — 2026-09-19
+
 ### Fixed
 
 - Keep task cards visible when Touch Bar space shrinks by exposing their readable

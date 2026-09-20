@@ -4,5 +4,5 @@ Download the Apple silicon or Intel archive and `SHA256SUMS` from the
 [latest release](https://github.com/mumchristmas/RehireBar/releases/latest).
 Both builds require macOS 15+ and a physical Touch Bar.
 
-See the [release notes](RELEASE-NOTES-0.5.8.md) for changes and the
+See the [release notes](RELEASE-NOTES-0.5.9.md) for changes and the
 [installation guide](../docs/INSTALLATION.md) for checksum verification and first launch.

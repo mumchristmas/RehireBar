@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.9 — 2026-09-21
+
 ### Fixed
 
 - Refresh approval text, actions, and button state together when moving between

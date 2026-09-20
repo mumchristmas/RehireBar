@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import XCTest
 @testable import RehireBar
 
@@ -180,6 +181,64 @@ final class CodexAppServerClientTests: XCTestCase {
         XCTAssertFalse(runner.isRunning)
     }
 
+    func testUncooperativeServerIsKilledAndReapedAfterSuccessfulResponse() async throws {
+        let fixture = try makeUncooperativeServer(returnsResponse: true)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let start = Date()
+        let result = try await CodexAppServerClient(runnerFactory: {
+            FoundationAppServerRunner(executableURL: fixture.executable)
+        }).fetch()
+        XCTAssertEqual(result.primary.remainingPercent, 90)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 4)
+        let pid = try XCTUnwrap(Int32(String(contentsOf: fixture.pid, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+        XCTAssertEqual(Darwin.kill(pid, 0), -1)
+        XCTAssertEqual(errno, ESRCH)
+    }
+
+    func testCancellationDoesNotWaitForUncooperativeServerOnCallingThread() async throws {
+        let fixture = try makeUncooperativeServer(returnsResponse: false)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let task = Task {
+            try await CodexAppServerClient(runnerFactory: {
+                FoundationAppServerRunner(executableURL: fixture.executable)
+            }).fetch()
+        }
+        for _ in 0..<200 {
+            if FileManager.default.fileExists(atPath: fixture.pid.path) { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let start = Date()
+        task.cancel()
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.2)
+        do { _ = try await task.value; XCTFail("Cancelled transaction must not succeed") } catch {}
+        XCTAssertLessThan(Date().timeIntervalSince(start), 4)
+        let pid = try XCTUnwrap(Int32(String(contentsOf: fixture.pid, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+        XCTAssertEqual(Darwin.kill(pid, 0), -1)
+        XCTAssertEqual(errno, ESRCH)
+    }
+
+    private func makeUncooperativeServer(returnsResponse: Bool) throws -> (root: URL, executable: URL, pid: URL) {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let executable = root.appending(path: "server")
+        let pid = root.appending(path: "pid")
+        var script = "#!/bin/sh\ntrap '' TERM\necho $$ > '" + pid.path + "'\n"
+        if returnsResponse {
+            script += """
+            read -r line
+            echo '{"id":1,"result":{}}'
+            read -r line
+            read -r line
+            echo '{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":10,"windowDurationMins":300,"resetsAt":2000000000}}}}'
+
+            """
+        }
+        script += "while :; do :; done\n"
+        try script.write(to: executable, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        return (root, executable, pid)
+    }
+
     private func temporaryExecutable() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try Data("#!/bin/sh\n".utf8).write(to: url)
@@ -201,7 +260,7 @@ private final class FakeBlockingRunner: AppServerRunning, @unchecked Sendable {
         throw CancellationError()
     }
 
-    func cancelAndWait() {
+    func cancel() {
         condition.lock(); terminateCount += 1; isRunning = false; reapCount += 1
         condition.broadcast(); condition.unlock()
     }

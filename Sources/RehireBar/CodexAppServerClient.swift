@@ -14,7 +14,7 @@ enum CodexAppServerError: Error, Equatable, Sendable {
 
 protocol AppServerRunning: AnyObject, Sendable {
     func run() throws -> UsageSnapshot
-    func cancelAndWait()
+    func cancel()
 }
 
 struct CodexAppServerClient: UsageFetching, Sendable {
@@ -48,7 +48,7 @@ struct CodexAppServerClient: UsageFetching, Sendable {
         return try await withTaskCancellationHandler {
             try await Task.detached { try runner.run() }.value
         } onCancel: {
-            runner.cancelAndWait()
+            runner.cancel()
         }
     }
 
@@ -222,27 +222,42 @@ struct CodexAppServerClient: UsageFetching, Sendable {
     }
 }
 
-private final class FoundationAppServerRunner: AppServerRunning, @unchecked Sendable {
-    private let condition = NSCondition()
+final class FoundationAppServerRunner: AppServerRunning, @unchecked Sendable {
+    private let condition = NSLock()
+    private let executableURL: URL?
     private var process: Process?
-    private var input: Pipe?
-    private var output: Pipe?
     private var cancelled = false
 
+    init(executableURL: URL? = nil) { self.executableURL = executableURL }
+
     func run() throws -> UsageSnapshot {
-        let executable = try CodexAppServerClient.resolveExecutable()
-        let process = Process(); let input = Pipe(); let output = Pipe()
+        let executable = try executableURL ?? CodexAppServerClient.resolveExecutable()
+        let process = Process()
+        let input = Pipe()
+        let output = Pipe()
+        let exited = DispatchSemaphore(value: 0)
         process.executableURL = executable
         process.arguments = ["app-server", "--stdio"]
-        process.standardInput = input; process.standardOutput = output
+        process.standardInput = input
+        process.standardOutput = output
         process.standardError = FileHandle.nullDevice
+        process.terminationHandler = { _ in exited.signal() }
 
+        // Serialize launch with cancellation so a pre-launch cancel cannot be lost.
         condition.lock()
         if cancelled { condition.unlock(); throw CancellationError() }
-        self.process = process; self.input = input; self.output = output
+        do { try process.run() } catch {
+            condition.unlock()
+            throw CodexAppServerError.unavailable
+        }
+        self.process = process
         condition.unlock()
-        do { try process.run() } catch { finish(process); throw CodexAppServerError.unavailable }
-        defer { finish(process) }
+        defer {
+            try? input.fileHandleForWriting.close()
+            finish(process, exited: exited)
+            try? output.fileHandleForReading.close()
+            condition.withLock { self.process = nil }
+        }
         return try CodexAppServerClient.transact(
             standardInput: input.fileHandleForWriting,
             outputDescriptor: output.fileHandleForReading.fileDescriptor,
@@ -250,22 +265,30 @@ private final class FoundationAppServerRunner: AppServerRunning, @unchecked Send
         )
     }
 
-    func cancelAndWait() {
-        condition.lock(); cancelled = true
-        let process = self.process; let input = self.input; let output = self.output
-        condition.unlock()
-        input?.fileHandleForWriting.closeFile()
-        output?.fileHandleForReading.closeFile()
-        if let process, process.isRunning { process.terminate(); process.waitUntilExit() }
+    /// Cancellation handlers may execute on the UI thread. Never wait here or
+    /// close a descriptor while the reader is still using it.
+    func cancel() {
+        let process = condition.withLock {
+            cancelled = true
+            return self.process
+        }
+        guard let process else { return }
+        if process.isRunning { process.terminate() }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.25) {
+            if process.isRunning { Darwin.kill(process.processIdentifier, SIGKILL) }
+        }
     }
 
     private var isCancelled: Bool { condition.withLock { cancelled } }
 
-    private func finish(_ process: Process) {
-        input?.fileHandleForWriting.closeFile()
+    private func finish(_ process: Process, exited: DispatchSemaphore) {
         if process.isRunning { process.terminate() }
-        process.waitUntilExit()
-        condition.withLock { self.process = nil; input = nil; output = nil }
+        if exited.wait(timeout: .now() + 0.25) == .timedOut {
+            if process.isRunning { Darwin.kill(process.processIdentifier, SIGKILL) }
+            // Foundation reaps the process before invoking its termination handler.
+            // Even an OS-level failure must not turn cleanup into an infinite wait.
+            _ = exited.wait(timeout: .now() + 2)
+        }
     }
 }
 

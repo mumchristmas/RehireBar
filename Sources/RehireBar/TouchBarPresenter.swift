@@ -335,7 +335,9 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
     private var textWidthConstraints: [NSTouchBarItem.Identifier: NSLayoutConstraint] = [:]
     private var approval: ConversationApproval?
     private var approvalAction: ((ConversationApprovalAction) -> Void)?
-    private var approvalButtons: [NSButton] = []
+    private var approvalButtons: [String: NSButton] = [:]
+    private var approvalLabel: NSTextField?
+    private var approvalSending = false
 
     var onManualRefresh: (@MainActor @Sendable () -> Void)?
     var onExplicitRestore: (@MainActor @Sendable () -> Void)?
@@ -348,7 +350,17 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
         _ approval: ConversationApproval,
         action: @escaping (ConversationApprovalAction) -> Void
     ) {
+        if self.approval?.id != approval.id {
+            approvalSending = false
+            for (rawAction, button) in approvalButtons {
+                if let action = ConversationApprovalAction(rawValue: rawAction) {
+                    button.title = approvalTitle(for: action)
+                }
+                button.isEnabled = true
+            }
+        }
         self.approval = approval
+        approvalLabel?.stringValue = approval.question
         approvalAction = action
         touchBar.defaultItemIdentifiers = [
             Self.approvalQuestion, Self.approvalApprove, Self.approvalReject,
@@ -356,15 +368,24 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
         ]
     }
 
+    private func approvalTitle(for action: ConversationApprovalAction) -> String {
+        switch action {
+        case .approve: "✓ อนุมัติ"
+        case .reject: "✕ ไม่อนุมัติ"
+        case .requestChanges: "✎ ขอแก้ไข"
+        }
+    }
+
     func setApprovalSending(_ sending: Bool, result: String? = nil) {
-        approvalButtons.forEach { $0.isEnabled = !sending }
-        if let result { approvalButtons.first?.title = result }
+        approvalSending = sending
+        approvalButtons.values.forEach { $0.isEnabled = !sending }
+        if let result { approvalButtons[ConversationApprovalAction.approve.rawValue]?.title = result }
     }
 
     func restoreMetrics() {
         approval = nil
         approvalAction = nil
-        approvalButtons.removeAll()
+        approvalSending = false
         updateMetricComposition()
     }
 
@@ -476,16 +497,13 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
                 weight: .semibold
             )
             label.widthAnchor.constraint(equalToConstant: 250).isActive = true
+            approvalLabel = label
             item.view = label
             return item
         }
         if let action = approvalAction(for: identifier) {
-            let title: String = switch action {
-            case .approve: "✓ อนุมัติ"
-            case .reject: "✕ ไม่อนุมัติ"
-            case .requestChanges: "✎ ขอแก้ไข"
-            }
-            let button = makePickerButton(title: title)
+            let button = makePickerButton(title: approvalTitle(for: action))
+            button.isEnabled = !approvalSending
             button.font = .systemFont(
                 ofSize: ApprovalTouchBarStyle.actionFontSize,
                 weight: .bold
@@ -496,7 +514,7 @@ final class TouchBarPresenter: NSObject, UsagePresenting, ManualRefreshBinding,
             button.identifier = NSUserInterfaceItemIdentifier(action.rawValue)
             button.target = self
             button.action = #selector(handleApprovalAction(_:))
-            approvalButtons.append(button)
+            approvalButtons[action.rawValue] = button
             item.view = button
             return item
         }

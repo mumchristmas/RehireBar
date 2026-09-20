@@ -896,6 +896,54 @@ final class CodexSessionCatalogProviderTests: XCTestCase {
         XCTAssertEqual(sessions.first?.executionState, .unknown)
     }
 
+    func testHostRecoveryInvalidatesCachedRuntimeButRetainsContext() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let databaseURL = root.appending(path: "codex-dev.db")
+        try makeCatalog(at: databaseURL)
+        let threadID = "10000000-0000-4000-8000-000000000007"
+        let hostID = "remote-ssh-codex-managed:TestHost"
+        try insert(
+            "INSERT INTO local_thread_catalog VALUES "
+                + "('\(hostID)', '\(threadID)', 'Remote work', '/tmp/remote', 199, 199, 0);",
+            into: databaseURL
+        )
+        let statuses = FakeAppThreadStatusFetcher(
+            statuses: [.init(
+                threadID: threadID,
+                hostID: hostID,
+                executionState: .working,
+                updatedAt: Date(timeIntervalSince1970: 198),
+                activeSince: Date(timeIntervalSince1970: 197)
+            )],
+            hostStatuses: [.init(
+                hostID: hostID,
+                stage: .ready,
+                updatedAt: Date(timeIntervalSince1970: 199)
+            )]
+        )
+
+        let sessions = try await CodexSessionCatalogProvider(
+            root: root,
+            databaseURL: databaseURL,
+            desktopSnapshots: RecordingDesktopSnapshotCache(snapshot: .init(
+                identity: TaskIdentity(hostID: hostID, threadID: threadID),
+                observedAt: Date(timeIntervalSince1970: 198), usedTokens: 50,
+                contextWindow: 100, model: "model", effort: "high",
+                executionState: .working, isCompactingContext: true,
+                activeSince: Date(timeIntervalSince1970: 197))),
+            appThreadStatuses: statuses,
+            now: { Date(timeIntervalSince1970: 200) }
+        ).fetchSessions()
+
+        XCTAssertEqual(sessions.first?.executionState, .unknown)
+        XCTAssertNil(sessions.first?.activeSince)
+        XCTAssertEqual(sessions.first?.isCompactingContext, false)
+        XCTAssertEqual(sessions.first?.usedTokens, 50)
+    }
+
     func testCompositeIdentityIsolatesSameThreadAcrossAllSupportedHostKinds() async throws {
         let root = FileManager.default.temporaryDirectory
             .appending(path: UUID().uuidString, directoryHint: .isDirectory)

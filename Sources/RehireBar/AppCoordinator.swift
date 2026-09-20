@@ -276,10 +276,19 @@ final class AppCoordinator {
         refreshNow(preserveRenderedStatusOnFailure: true)
     }
 
+    private func markRetainedUsageStale() {
+        if let previous = lastStatus {
+            let stale = previous.markingUsageStale()
+            lastStatus = stale
+            statusPublisher.publish(stale)
+        }
+        presenter.markRenderedStatusStale()
+    }
+
     private func refreshNow(preserveRenderedStatusOnFailure: Bool) {
         guard hasStarted else { return }
         if preserveRenderedStatusOnFailure {
-            presenter.markRenderedStatusStale()
+            markRetainedUsageStale()
         }
         refreshLive(replacingInFlight: true)
         refresh(preserveRenderedStatusOnFailure: preserveRenderedStatusOnFailure)
@@ -288,7 +297,7 @@ final class AppCoordinator {
     private func startRefreshPipeline(preserveRenderedStatusOnFailure: Bool) {
         guard hasStarted else { return }
         if preserveRenderedStatusOnFailure {
-            presenter.markRenderedStatusStale()
+            markRetainedUsageStale()
         }
         isRefreshRunning = true
         if refreshCancellation == nil {

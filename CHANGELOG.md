@@ -4,6 +4,18 @@
 
 ### Fixed
 
+- Refresh approval text, actions, and button state together when moving between
+  requests; expire displayed requests and revalidate them before delivery.
+- Serialize approval queue transactions across processes so concurrent requests
+  and delivery updates cannot overwrite each other.
+- Bound app-server shutdown and keep cancellation from blocking the UI when a
+  child process ignores normal termination.
+- Preserve stale quota status through task-only refreshes after a failed refresh.
+- Reject remote runtime state from before host recovery while retaining eligible
+  context data; resolve model reroutes only from the current turn.
+- Reattach file watchers after atomic replacement so subsequent writes still
+  trigger status updates.
+
 - Keep the fast-mode bolt stable while reasoning progress and desktop status
   refreshes alternate. New token counts no longer overwrite the resolved service
   tier, including when fast mode has been turned off.

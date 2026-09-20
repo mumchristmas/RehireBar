@@ -293,9 +293,13 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
         let runtimeMerged = statusMerged.enumerated().map { index, session in
             guard let runtime = runtimeByIndex[index], runtime.identity == session.row.identity
             else { return session }
+            // Reconnection invalidates cached runtime evidence as well as log events.
+            let afterRecovery = !session.row.hostKind.isRemote
+                || runtime.observedAt >= (latestHostStatus[session.row.hostID]?.updatedAt ?? .distantPast)
             return CatalogSession(
                 row: session.row,
-                snapshot: Self.merging(runtime: runtime, into: session.snapshot, now: now())
+                snapshot: Self.merging(runtime: runtime, into: session.snapshot,
+                                       now: now(), allowsRuntimeState: afterRecovery)
             )
         }
         return SessionMonitoringOrder.sorted(Self.applyingHostConnectionState(
@@ -395,13 +399,14 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
     private static func merging(
         runtime: CodexDesktopThreadSnapshot,
         into snapshot: CurrentSessionSnapshot,
-        now: Date
+        now: Date,
+        allowsRuntimeState: Bool = true
     ) -> CurrentSessionSnapshot {
         let runtimeAge = max(0, now.timeIntervalSince(runtime.observedAt))
         let hasContext = runtimeAge <= SessionEvidenceFreshness.runtimeContext
             && (runtime.contextWindow ?? 0) > 0 && (runtime.usedTokens ?? -1) >= 0
         let hasModel = runtimeAge <= SessionEvidenceFreshness.runtimeModel
-        let runtimeCanSupplyState = snapshot.executionState != .waiting
+        let runtimeCanSupplyState = allowsRuntimeState && snapshot.executionState != .waiting
             && runtime.executionState != nil
             && runtimeAge <= SessionEvidenceFreshness.runtimeState
             && runtime.observedAt >= (snapshot.executionStateObservedAt ?? .distantPast)

@@ -265,6 +265,29 @@ final class CodexDesktopIPCProtocolTests: XCTestCase {
         XCTAssertEqual(snapshot.model, "gpt-actual")
     }
 
+    func testHistoricalRerouteCannotOverrideLatestTurnAndCanonicalOrderWins() throws {
+        let old: [String: Any] = ["status": "completed", "items": [
+            ["type": "model/rerouted", "toModel": "old-fallback"]]]
+        var latest: [String: Any] = ["status": "inProgress", "items": []]
+        func model(_ state: [String: Any]) throws -> String? {
+            let payload: [String: Any] = ["type": "broadcast", "method": "thread-stream-state-changed",
+                "params": ["conversationId": "thread-id", "change": ["type": "snapshot", "conversationState": state]]]
+            return CodexDesktopIPCMessageFactory.threadSnapshot(in: payload,
+                identity: TaskIdentity(hostID: "local", threadID: "thread-id"))?.model
+        }
+        XCTAssertEqual(try model(["latestModel": "configured", "turns": [old, latest]]), "configured")
+        latest["items"] = [["type": "model/rerouted", "toModel": "first"],
+                           ["type": "model/rerouted", "toModel": "last"]]
+        XCTAssertEqual(try model(["latestModel": "configured", "turns": [old, latest]]), "last")
+        let history: [String: Any] = ["entitiesByKey": ["z-old": old, "a-new": latest],
+            "islands": [["newerBoundary": ["status": "exhausted"],
+                         "entries": [["value": "z-old"], ["value": "a-new"]]]]]
+        XCTAssertEqual(try model(["latestModel": "configured", "turnHistory": ["kind": "canonical", "history": history]]), "last")
+        let paged: [String: Any] = ["entitiesByKey": ["z-old": old],
+            "islands": [["newerBoundary": ["status": "loading"], "entries": [["value": "z-old"]]]]]
+        XCTAssertEqual(try model(["latestModel": "configured", "turnHistory": ["kind": "canonical", "history": paged]]), "configured")
+    }
+
     func testStatusReadMethodsExcludeTaskControlAndPairingOperations() {
         let forbidden = Set([
             "thread/resume", "turn/start", "turn/interrupt", "turn/steer",

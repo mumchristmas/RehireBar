@@ -272,7 +272,7 @@ enum CodexDesktopIPCMessageFactory {
             observedAt: observedAt,
             usedTokens: usedTokens,
             contextWindow: contextWindow,
-            model: fields.reroutedModel ?? fields.model,
+            model: currentReroutedModel(in: state) ?? fields.model,
             effort: fields.effort ?? fields.fallbackEffort,
             serviceTier: currentServiceTier(in: state),
             executionState: executionState(from: fields.runtimeStatus),
@@ -325,7 +325,15 @@ enum CodexDesktopIPCMessageFactory {
     /// Desktop stores turn timestamps in milliseconds, independently of item
     /// progress and the time this snapshot was read. Only the latest turn counts.
     private static func activeTurnStart(in state: [String: Any], observedAt: Date) -> Date? {
-        let turn: [String: Any]?
+        guard let turn = latestTurn(in: state), turn["status"] as? String == "inProgress",
+              let milliseconds = turn["turnStartedAtMs"] as? NSNumber,
+              CFGetTypeID(milliseconds) != CFBooleanGetTypeID(),
+              milliseconds.doubleValue.isFinite, milliseconds.doubleValue > 0 else { return nil }
+        let start = Date(timeIntervalSince1970: milliseconds.doubleValue / 1_000)
+        return start <= observedAt ? start : nil
+    }
+
+    private static func latestTurn(in state: [String: Any]) -> [String: Any]? {
         if let turnHistory = state["turnHistory"] as? [String: Any],
            turnHistory["kind"] as? String == "canonical" {
             guard let history = turnHistory["history"] as? [String: Any],
@@ -338,16 +346,20 @@ enum CodexDesktopIPCMessageFactory {
                   let key = entries.last?["value"] as? String else { return nil }
             // Only a known live tail can supply current-turn timing. Historical
             // pages and entity dictionary order must not choose an earlier turn.
-            turn = entities[key] as? [String: Any]
+            return entities[key] as? [String: Any]
         } else {
-            turn = (state["turns"] as? [[String: Any]])?.last
+            return (state["turns"] as? [[String: Any]])?.last
         }
-        guard let turn, turn["status"] as? String == "inProgress",
-              let milliseconds = turn["turnStartedAtMs"] as? NSNumber,
-              CFGetTypeID(milliseconds) != CFBooleanGetTypeID(),
-              milliseconds.doubleValue.isFinite, milliseconds.doubleValue > 0 else { return nil }
-        let start = Date(timeIntervalSince1970: milliseconds.doubleValue / 1_000)
-        return start <= observedAt ? start : nil
+    }
+
+    private static func currentReroutedModel(in state: [String: Any]) -> String? {
+        let turn = latestTurn(in: state)
+            ?? (state["turnHistory"] == nil && state["turns"] == nil ? state : nil)
+        guard let items = turn?["items"] as? [[String: Any]] else { return nil }
+        // Only ordered items from the known latest turn may override latestModel.
+        return items.reversed().first(where: {
+            ($0["type"] as? String)?.lowercased().replacingOccurrences(of: "/", with: "") == "modelrerouted"
+        }).flatMap { ($0["toModel"] ?? $0["to_model"]) as? String }
     }
 
     private static func currentServiceTier(in state: [String: Any]) -> String? {
@@ -364,7 +376,6 @@ enum CodexDesktopIPCMessageFactory {
     private struct SnapshotFields {
         var tokenUsage: [String: Any]?
         var model: String?
-        var reroutedModel: String?
         var effort: String?
         var fallbackEffort: String?
         var runtimeStatus: Any?
@@ -380,12 +391,6 @@ enum CodexDesktopIPCMessageFactory {
                 fields.tokenUsage = dictionary["latestTokenUsageInfo"] as? [String: Any]
             }
             if fields.model == nil { fields.model = dictionary["latestModel"] as? String }
-            let normalizedType = (dictionary["type"] as? String)?
-                .lowercased().replacingOccurrences(of: "/", with: "")
-            if normalizedType == "modelrerouted" {
-                fields.reroutedModel = dictionary["toModel"] as? String
-                    ?? dictionary["to_model"] as? String
-            }
             if fields.effort == nil {
                 fields.effort = dictionary["latestReasoningEffort"] as? String
                 if fields.effort == nil,

@@ -119,9 +119,12 @@ final class CodexDataChangeMonitor: DataChangeMonitoring {
             )
             source.setEventHandler { [weak self, weak source] in
                 Task { @MainActor in
-                    self?.receiveEvent(requiresRebuild: source?.data.intersection([
-                        .rename, .delete, .revoke
-                    ]).isEmpty == false)
+                    guard let self, let source, self.sources[path] === source else { return }
+                    let invalidated = !source.data.intersection([.rename, .delete, .revoke]).isEmpty
+                    if invalidated {
+                        self.sources.removeValue(forKey: path)?.cancel()
+                    }
+                    self.receiveEvent(requiresRebuild: invalidated)
                 }
             }
             source.setCancelHandler { Darwin.close(descriptor) }

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Restore live quota refresh after Desktop moves its bundled CLI into
+  `codex-cli/bin/codex`, including when the old local CLI symlink is broken.
+
 ## 0.5.9 — 2026-09-21
 
 ### Fixed

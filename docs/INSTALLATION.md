@@ -70,6 +70,7 @@ For local release acceptance, `bash scripts/test-release.sh --build` verifies th
 
 The login item does not inherit your interactive shell PATH. RehireBar looks for
 Codex CLI at `~/.local/bin/codex`, the bundled executable in
+`/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`,
 `/Applications/ChatGPT.app/Contents/Resources/codex`, `/opt/homebrew/bin/codex`, and
 `/usr/local/bin/codex`, in that order.
 

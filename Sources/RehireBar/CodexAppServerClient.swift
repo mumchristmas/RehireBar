@@ -55,6 +55,7 @@ struct CodexAppServerClient: UsageFetching, Sendable {
     static func resolveExecutable(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        applicationsDirectory: URL = URL(fileURLWithPath: "/Applications"),
         knownCandidates: [URL]? = nil
     ) throws -> URL {
         let candidates: [URL]
@@ -66,7 +67,8 @@ struct CodexAppServerClient: UsageFetching, Sendable {
         } else {
             candidates = knownCandidates ?? [
                 homeDirectory.appending(path: ".local/bin/codex"),
-                URL(fileURLWithPath: "/Applications/ChatGPT.app/Contents/Resources/codex"),
+                applicationsDirectory.appending(path: "ChatGPT.app/Contents/Resources/codex-cli/bin/codex"),
+                applicationsDirectory.appending(path: "ChatGPT.app/Contents/Resources/codex"),
                 URL(fileURLWithPath: "/opt/homebrew/bin/codex"),
                 URL(fileURLWithPath: "/usr/local/bin/codex"),
             ]

@@ -22,6 +22,33 @@ final class CodexAppServerClientTests: XCTestCase {
         ), executable)
     }
 
+    func testDesktopLayoutMigrationSkipsBrokenLocalSymlink() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let home = root.appending(path: "home")
+        let applications = root.appending(path: "Applications")
+        let resources = applications.appending(path: "ChatGPT.app/Contents/Resources")
+        let legacy = resources.appending(path: "codex")
+        let current = resources.appending(path: "codex-cli/bin/codex")
+        let link = home.appending(path: ".local/bin/codex")
+        try FileManager.default.createDirectory(at: link.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: current.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: legacy)
+        try Data("#!/bin/sh\n".utf8).write(to: current)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: current.path)
+
+        XCTAssertEqual(try CodexAppServerClient.resolveExecutable(
+            environment: ["PATH": ""], homeDirectory: home, applicationsDirectory: applications
+        ), current.resolvingSymlinksInPath().standardizedFileURL)
+
+        // Older desktop bundles remain usable after removing the new layout.
+        try FileManager.default.moveItem(at: current, to: legacy)
+        try FileManager.default.removeItem(at: link)
+        XCTAssertEqual(try CodexAppServerClient.resolveExecutable(
+            environment: ["PATH": ""], homeDirectory: home, applicationsDirectory: applications
+        ), legacy.resolvingSymlinksInPath().standardizedFileURL)
+    }
+
     func testKnownSymlinkCandidateResolvesToRegularExecutable() throws {
         let executable = try temporaryExecutable()
         let link = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)

@@ -10,8 +10,8 @@ a status publisher; an interface alone does not install a Claude Code or OpenCod
 
 Open the [latest release](https://github.com/mumchristmas/RehireBar/releases/latest) and download the ZIP for your Mac plus `SHA256SUMS`:
 
-- `RehireBar-0.5.3-macos-arm64.zip` — Apple Silicon.
-- `RehireBar-0.5.3-macos-x86_64.zip` — Intel.
+- `RehireBar-0.5.9-macos-arm64.zip` — Apple Silicon.
+- `RehireBar-0.5.9-macos-x86_64.zip` — Intel.
 
 Xcode is not required to use a downloaded app. Both builds require macOS 15+. Apple's [macOS Sequoia compatibility list](https://support.apple.com/en-us/120282) includes the 2018–2020 Intel Touch Bar MacBook Pro generations. The Intel build does not add support for the older macOS versions on 2016–2017 models.
 
@@ -19,14 +19,14 @@ In Terminal, calculate the checksum for your downloaded file; for example:
 
 ```bash
 cd ~/Downloads
-shasum -a 256 RehireBar-0.5.3-macos-arm64.zip
+shasum -a 256 RehireBar-0.5.9-macos-arm64.zip
 ```
 
 Compare the complete result with the matching filename in `SHA256SUMS`. Extract the ZIP, quit other Touch Bar status helpers, then move `RehireBar.app` to Applications and open it.
 
 ## First launch
 
-The initial release is ad-hoc signed and not notarized. If macOS blocks it, first try opening the app, then use **System Settings → Privacy & Security → Open Anyway** and confirm. See [Apple's first-open instructions](https://support.apple.com/en-us/102445). Do not disable Gatekeeper globally.
+The current release is ad-hoc signed and not notarized. If macOS blocks it, first try opening the app, then use **System Settings → Privacy & Security → Open Anyway** and confirm. See [Apple's first-open instructions](https://support.apple.com/en-us/102445). Do not disable Gatekeeper globally.
 
 The app runs in the background, with no Dock icon or main window. Its menu-bar icon provides **Show Touch Bar** and **Quit RehireBar**.
 
@@ -90,12 +90,14 @@ desktop bundle and CLI version the current process detects.
 
 For in-app upgrades, see [Application updates](UPDATES.md). The updater needs its
 signed architecture-specific feed published alongside the release archives.
-Versions that predate this updater require one manual installation of an
-updater-enabled release before in-app upgrades become available.
+From 0.5.7 or later, choose **Check for Updates…** to use the signed update feed.
+From 0.5.6 or earlier, quit the old app and manually replace it with the matching
+release download because 0.5.7 changed the bundle identifier. Preferences are not
+migrated automatically; reconfigure preferences and login-item registration as needed.
 
 ## Developer ID distribution
 
-Maintainers can set `REHIREBAR_SIGNING_IDENTITY` to their Developer ID Application identity when running `scripts/build-app.sh`. Developer ID signing and notarization require a separate distribution setup; this first release uses ad-hoc signing.
+Maintainers can set `REHIREBAR_SIGNING_IDENTITY` to their Developer ID Application identity when running `scripts/build-app.sh`. Developer ID signing and notarization require a separate distribution setup; the current release uses ad-hoc signing.
 
 ## Uninstall
 

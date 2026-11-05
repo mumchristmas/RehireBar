@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Point both README downloads and installation examples to 0.5.9, and clarify
+  manual replacement when upgrading from 0.5.6 or earlier.
+
 ## 0.5.9 — 2026-09-21
 
 ### Fixed

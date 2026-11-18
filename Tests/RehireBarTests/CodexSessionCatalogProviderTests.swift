@@ -4,6 +4,43 @@ import XCTest
 @testable import RehireBar
 
 final class CodexSessionCatalogProviderTests: XCTestCase {
+    func testCatalogMigrationReplacesLegacyRowsAndOrdersLiveTurnsByActualStart() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let directory = root.appending(path: "sqlite")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let legacy = directory.appending(path: "codex-dev.db")
+        let current = directory.appending(path: "codex.db")
+        let obsolete = "10000000-0000-4000-8000-000000000001"
+        let local = "10000000-0000-4000-8000-000000000002"
+        let remote = "10000000-0000-4000-8000-000000000003"
+        try makeCatalog(at: legacy)
+        try insert("INSERT INTO local_thread_catalog VALUES ('local', '\(obsolete)', 'Old row', '/tmp/old', 100, 100, 0);", into: legacy)
+
+        let upstream = RuntimeTurnStarts(starts: [local: 180, remote: 190])
+        let provider = CodexSessionCatalogProvider(
+            root: root, desktopSnapshots: upstream, now: { Date(timeIntervalSince1970: 240) },
+            minimumRuntimeReadInterval: 0
+        )
+        let before = try await provider.fetchSessions()
+        XCTAssertEqual(before.map(\.threadID), [obsolete])
+
+        try makeCatalog(at: current)
+        let empty = try await provider.fetchSessions()
+        XCTAssertTrue(empty.isEmpty, "An empty current catalog must not revive legacy rows")
+        try insert("""
+            INSERT INTO local_thread_catalog VALUES
+                ('local', '\(local)', 'Local task', '/tmp/local', 170, 170, 0),
+                ('remote-ssh-codex-managed:TestHost', '\(remote)', 'Remote task', '/tmp/remote', 110, 110, 0);
+            """, into: current)
+
+        let sessions = try await provider.fetchSessions()
+        XCTAssertEqual(sessions.map(\.threadID), [remote, local])
+        XCTAssertEqual(sessions.map(\.executionState), [.working, .working])
+        XCTAssertEqual(sessions.map { $0.lastActivityAt?.timeIntervalSince1970 }, [190, 180])
+    }
+
+
     func testArchiveStateOverridesCachedCatalogWithoutHidingRemoteIdentity() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -1230,6 +1267,20 @@ final class CodexSessionCatalogProviderTests: XCTestCase {
 
     private func tokenCount(timestamp: String) -> String {
         #"{"timestamp":"\#(timestamp)","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":1000},"last_token_usage":{"total_tokens":1000},"model_context_window":100000}}}"#
+    }
+}
+
+private struct RuntimeTurnStarts: DesktopThreadSnapshotFetching {
+    let starts: [String: TimeInterval]
+
+    func fetchThreadSnapshot(threadID: String, hostID: String) async throws -> CodexDesktopThreadSnapshot {
+        guard let start = starts[threadID] else { throw UsageError.unavailable }
+        return .init(
+            identity: TaskIdentity(hostID: hostID, threadID: threadID),
+            observedAt: Date(timeIntervalSince1970: threadID.hasSuffix("2") ? 239 : 235),
+            usedTokens: nil, contextWindow: nil, model: nil, effort: nil,
+            executionState: .working, activeSince: Date(timeIntervalSince1970: start)
+        )
     }
 }
 

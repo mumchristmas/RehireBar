@@ -47,7 +47,7 @@ final class RehireBarApplication {
         // Catalog rows already carry their authoritative display title. Runtime
         // metadata enrichment needs only state_5 model/effort/rollout fields and
         // should not reopen the catalog database once per local row.
-        let catalogThreadMetadata = CodexThreadMetadataStore(catalogDatabaseURL: nil)
+        let catalogThreadMetadata = CodexThreadMetadataStore(catalogLocation: nil)
         let usageProvider = CodexUsageProvider(
             primary: CodexAppServerClient(),
             fallback: SessionLogUsageProvider()

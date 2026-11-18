@@ -15,16 +15,15 @@ protocol ThreadMetadataReading: Sendable {
 
 struct CodexThreadMetadataStore: ThreadMetadataReading, Sendable {
     private let databaseURL: URL
-    private let catalogDatabaseURL: URL?
+    private let catalogLocation: CodexCatalogLocation?
 
     init(
         databaseURL: URL = FileManager.default.homeDirectoryForCurrentUser
             .appending(path: ".codex/state_5.sqlite"),
-        catalogDatabaseURL: URL? = FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: ".codex/sqlite/codex-dev.db")
+        catalogLocation: CodexCatalogLocation? = .init()
     ) {
         self.databaseURL = databaseURL
-        self.catalogDatabaseURL = catalogDatabaseURL
+        self.catalogLocation = catalogLocation
     }
 
     func metadata(for threadID: String) throws -> CodexThreadMetadata? {
@@ -67,7 +66,7 @@ struct CodexThreadMetadataStore: ThreadMetadataReading, Sendable {
     }
 
     private func localCatalogTitle(for threadID: String) throws -> String? {
-        guard let catalogDatabaseURL else { return nil }
+        guard let catalogDatabaseURL = catalogLocation?.existingURL else { return nil }
         var database: OpaquePointer?
         guard sqlite3_open_v2(
             catalogDatabaseURL.path,

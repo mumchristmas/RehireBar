@@ -21,9 +21,8 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
     private let runtimeSchedule: CatalogRuntimeSchedule
 
     init(
-        root: URL = FileManager.default.homeDirectoryForCurrentUser.appending(path: ".codex"),
-        databaseURL: URL = FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: ".codex/sqlite/codex-dev.db"),
+        root: URL = CodexCatalogLocation.defaultRoot,
+        databaseURL: URL? = nil,
         selectedThread: SelectedThreadState? = nil,
         approvalStore: ConversationApprovalStore? = nil,
         desktopSnapshots: (any DesktopThreadSnapshotFetching)? = nil,
@@ -44,7 +43,7 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
         self.threadMetadataCache = threadMetadataCache
             ?? threadMetadata.map { ThreadMetadataCache(reader: $0) }
         self.rolloutSnapshots = rolloutSnapshots
-        self.catalogRows = CatalogRowCache(databaseURL: databaseURL)
+        self.catalogRows = CatalogRowCache(location: CodexCatalogLocation(root: root, override: databaseURL))
         self.now = now
         self.maximumCatalogRows = max(1, maximumCatalogRows)
         self.runtimeSchedule = CatalogRuntimeSchedule(minimumInterval: minimumRuntimeReadInterval)
@@ -413,6 +412,10 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
         let executionState = runtimeCanSupplyState
             ? runtime.executionState ?? snapshot.executionState
             : snapshot.executionState
+        // The current turn start is activity evidence even after the launch
+        // log ages out. Polling the runtime never advances that timestamp.
+        let runtimeTurnStart = runtimeCanSupplyState && executionState == .working
+            ? runtime.activeSince : nil
         return CurrentSessionSnapshot(
             sessionID: snapshot.sessionID,
             threadID: snapshot.threadID,
@@ -424,14 +427,14 @@ struct CodexSessionCatalogProvider: SessionCollectionFetching, Sendable {
             // A fresh Desktop snapshot may explicitly clear the current tier.
             serviceTier: hasModel ? runtime.serviceTier : snapshot.serviceTier,
             observedAt: max(snapshot.observedAt, runtime.observedAt),
-            lastActivityAt: snapshot.lastActivityAt,
+            lastActivityAt: [snapshot.lastActivityAt, runtimeTurnStart].compactMap { $0 }.max(),
             contextObservedAt: hasContext
                 ? runtime.observedAt : snapshot.contextObservedAt,
             modelObservedAt: hasModel && (
                 runtime.model != nil || runtime.effort != nil || runtime.serviceTier != nil
             ) ? runtime.observedAt : snapshot.modelObservedAt,
             activeSince: executionState == .working
-                ? ((runtimeCanSupplyState ? runtime.activeSince : nil) ?? snapshot.activeSince) : nil,
+                ? (runtimeTurnStart ?? snapshot.activeSince) : nil,
             isCompactingContext: runtimeCanSupplyState
                 ? (runtime.isCompactingContext ?? false) : snapshot.isCompactingContext,
             projectName: snapshot.projectName,
@@ -667,32 +670,37 @@ private actor CatalogRowCache {
         let writeAheadLog: FileSignature?
     }
 
-    private let databaseURL: URL
+    private let location: CodexCatalogLocation
+    private var cachedURL: URL?
     private var cachedSignature: StoreSignature?
     private var cachedLimit = 0
     private var cachedRows: [CatalogRow] = []
 
-    init(databaseURL: URL) {
-        self.databaseURL = databaseURL
+    init(location: CodexCatalogLocation) {
+        self.location = location
     }
 
     func rows(limit: Int) async throws -> [CatalogRow] {
+        guard let databaseURL = location.existingURL else {
+            if !cachedRows.isEmpty { return Array(cachedRows.prefix(limit)) }
+            throw CocoaError(.fileReadNoSuchFile)
+        }
         let signature = Self.signature(of: databaseURL)
-        if signature == cachedSignature, cachedLimit >= limit {
+        if databaseURL == cachedURL, signature == cachedSignature, cachedLimit >= limit {
             return Array(cachedRows.prefix(limit))
         }
-        let databaseURL = databaseURL
         let loaded: [CatalogRow]
         do {
             loaded = try await Task.detached(priority: .utility) {
                 try CodexSessionCatalogProvider.readRows(from: databaseURL, limit: limit)
             }.value
         } catch {
-            guard !cachedRows.isEmpty else { throw error }
+            guard databaseURL == cachedURL, !cachedRows.isEmpty else { throw error }
             return Array(cachedRows.prefix(limit))
         }
         // A successful empty query is authoritative: the last task may have
         // been archived or removed. Do not resurrect the previous collection.
+        cachedURL = databaseURL
         cachedSignature = signature
         cachedLimit = limit
         cachedRows = loaded

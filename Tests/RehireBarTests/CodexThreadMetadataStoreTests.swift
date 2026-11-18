@@ -29,7 +29,7 @@ final class CodexThreadMetadataStoreTests: XCTestCase {
         let metadata = try XCTUnwrap(
             try CodexThreadMetadataStore(
                 databaseURL: databaseURL,
-                catalogDatabaseURL: nil
+                catalogLocation: nil
             ).metadata(for: id)
         )
 
@@ -75,7 +75,7 @@ final class CodexThreadMetadataStoreTests: XCTestCase {
 
         let metadata = try XCTUnwrap(try CodexThreadMetadataStore(
             databaseURL: stateURL,
-            catalogDatabaseURL: catalogURL
+            catalogLocation: .init(override: catalogURL)
         ).metadata(for: id))
 
         XCTAssertEqual(metadata.title, "Current app title")

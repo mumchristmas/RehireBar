@@ -80,8 +80,9 @@ Startup and live refresh are separate paths:
 
 Quota and task freshness are tracked independently. A quick task update must never make an old quota reading look current. Requests do not overlap; an event during a read becomes one follow-up refresh.
 
-The Codex adapter reads up to 256 recent catalog rows and retains each task by its
-complete identity. Project membership does not group cards, and the viewport does
+The Codex adapter prefers Desktop's `sqlite/codex.db` catalog when present and
+uses `sqlite/codex-dev.db` on older installs that only have that catalog. It reads
+up to 256 recent catalog rows and retains each task by its complete identity. Project membership does not group cards, and the viewport does
 not truncate the collection. Cached runtime evidence is applied to every collected
 task. Each refresh schedules at most four runtime reads: up to three prioritize
 active tasks and the unambiguous focused task, while the remaining capacity rotates

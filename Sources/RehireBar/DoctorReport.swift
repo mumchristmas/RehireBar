@@ -171,7 +171,7 @@ enum DoctorCommand {
             cli: .init(status: executable == nil ? "missing" : version == nil ? "version-unavailable" : "available",
                        version: version),
             sources: .init(
-                desktopCatalogPresent: fileManager.fileExists(atPath: home.appending(path: ".codex/sqlite/codex-dev.db").path),
+                desktopCatalogPresent: CodexCatalogLocation(root: home.appending(path: ".codex")).existingURL != nil,
                 sessionDirectoryPresent: directoryPresent(home.appending(path: ".codex/sessions")),
                 desktopLogDirectoryPresent: directoryPresent(home.appending(path: "Library/Logs/com.openai.codex")),
                 ipcSocket: socketPresent ? "present-unprobed" : "missing",

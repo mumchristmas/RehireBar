@@ -13,7 +13,7 @@ protocol DataChangeMonitoring: AnyObject {
 @MainActor
 final class CodexDataChangeMonitor: DataChangeMonitoring {
     private let root: URL
-    private let catalogDatabaseURL: URL
+    private let catalogDatabaseURL: URL?
     private let metadataDatabaseURL: URL
     private let logRoot: URL
     private let agentStatusDirectory: URL
@@ -27,9 +27,8 @@ final class CodexDataChangeMonitor: DataChangeMonitoring {
     private var pendingRebuild = false
 
     init(
-        root: URL = FileManager.default.homeDirectoryForCurrentUser.appending(path: ".codex"),
-        catalogDatabaseURL: URL = FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: ".codex/sqlite/codex-dev.db"),
+        root: URL = CodexCatalogLocation.defaultRoot,
+        catalogDatabaseURL: URL? = nil,
         metadataDatabaseURL: URL = FileManager.default.homeDirectoryForCurrentUser
             .appending(path: ".codex/state_5.sqlite"),
         logRoot: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -71,17 +70,18 @@ final class CodexDataChangeMonitor: DataChangeMonitoring {
 
     static func watchedPaths(
         root: URL,
-        catalogDatabaseURL: URL,
+        catalogDatabaseURL: URL?,
         metadataDatabaseURL: URL,
         logRoot: URL,
         agentStatusDirectory: URL = AgentStatusDirectoryProvider.defaultDirectory
     ) -> [URL] {
-        var paths = [
-            catalogDatabaseURL,
-            URL(filePath: catalogDatabaseURL.path + "-wal"),
+        let catalogs = CodexCatalogLocation(root: root, override: catalogDatabaseURL).candidates
+        var paths = catalogs.flatMap { url in
+            [url, URL(filePath: url.path + "-wal"), url.deletingLastPathComponent()]
+        }
+        paths += [
             metadataDatabaseURL,
             URL(filePath: metadataDatabaseURL.path + "-wal"),
-            catalogDatabaseURL.deletingLastPathComponent(),
             root.appending(path: "sessions"),
             root.appending(path: "archived_sessions"),
             logRoot,
@@ -109,7 +109,10 @@ final class CodexDataChangeMonitor: DataChangeMonitoring {
         for path in sources.keys where !desired.contains(path) {
             sources.removeValue(forKey: path)?.cancel()
         }
+        let catalogDirectories = Set(CodexCatalogLocation(root: root, override: catalogDatabaseURL)
+            .candidates.map { $0.deletingLastPathComponent().standardizedFileURL.path })
         for path in desired where sources[path] == nil {
+            let isCatalogDirectory = catalogDirectories.contains(path)
             let descriptor = Darwin.open(path, O_EVTONLY)
             guard descriptor >= 0 else { continue }
             let source = DispatchSource.makeFileSystemObjectSource(
@@ -124,7 +127,7 @@ final class CodexDataChangeMonitor: DataChangeMonitoring {
                     if invalidated {
                         self.sources.removeValue(forKey: path)?.cancel()
                     }
-                    self.receiveEvent(requiresRebuild: invalidated)
+                    self.receiveEvent(requiresRebuild: invalidated || isCatalogDirectory)
                 }
             }
             source.setCancelHandler { Darwin.close(descriptor) }

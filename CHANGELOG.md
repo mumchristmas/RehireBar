@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.10 — 2026-11-18
+
 ### Fixed
 
 - Read the current Codex task catalog after Desktop migrates to `codex.db`,
